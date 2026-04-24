@@ -1,140 +1,95 @@
-import { ScrollView, View, Text, StyleSheet } from 'react-native';
-import { Colors, Typography, Spacing, Radius, DisciplinaLabel } from '@constants/theme';
-
-// Datos hardcodeados para demo — reemplazar con queries reales a Supabase
-const OCUPACION_DATA = [
-  { disciplina: 'futbol5', porcentaje: 87 },
-  { disciplina: 'padel', porcentaje: 72 },
-  { disciplina: 'voley', porcentaje: 65 },
-  { disciplina: 'basquet', porcentaje: 91 },
-];
-
-const COBRABILIDAD_DATA = [
-  { mes: 'Ene', eventuales: 48000, abonados: 120000 },
-  { mes: 'Feb', eventuales: 52000, abonados: 132000 },
-  { mes: 'Mar', eventuales: 61000, abonados: 148000 },
-  { mes: 'Abr', eventuales: 57000, abonados: 155000 },
-];
-
-const DISCIPLINA_COLORS: Record<string, string> = {
-  futbol5: Colors.futbol5,
-  padel: Colors.padel,
-  voley: Colors.voley,
-  basquet: Colors.basquet,
-};
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors, Typography, Spacing, Radius } from '@constants/theme';
 
 export default function MetricasScreen() {
-  const totalAbonados = 284;
-  const ausentismo = 12.4;
-  const cobrabilidad = 96.8;
-
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.root}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Panel de métricas</Text>
-        <Text style={styles.subtitle}>Abril 2026</Text>
+        <Text style={styles.headerEyebrow}>Administración</Text>
+        <Text style={styles.title}>Panel de control</Text>
       </View>
 
-      {/* KPIs */}
-      <View style={styles.kpiGrid}>
-        <KpiCard value={totalAbonados.toString()} label="Socios activos" color={Colors.info} />
-        <KpiCard value={`${ausentismo}%`} label="Ausentismo" color={Colors.warning} />
-        <KpiCard value={`${cobrabilidad}%`} label="Cobrabilidad" color={Colors.success} />
-      </View>
-
-      {/* Ocupación por disciplina */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Ocupación por disciplina</Text>
-        {OCUPACION_DATA.map(item => (
-          <View key={item.disciplina} style={styles.barRow}>
-            <Text style={styles.barLabel}>{DisciplinaLabel[item.disciplina]}</Text>
-            <View style={styles.barTrack}>
-              <View
-                style={[
-                  styles.barFill,
-                  {
-                    width: `${item.porcentaje}%` as any,
-                    backgroundColor: DISCIPLINA_COLORS[item.disciplina],
-                  },
-                ]}
-              />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* KPIs mockup */}
+        <View style={styles.row}>
+          <View style={styles.kpiCard}>
+            <View style={[styles.kpiIcon, { backgroundColor: Colors.successLight }]}>
+              <Ionicons name="people-outline" size={18} color={Colors.success} />
             </View>
-            <Text style={styles.barValue}>{item.porcentaje}%</Text>
+            <Text style={styles.kpiValue}>--</Text>
+            <Text style={styles.kpiLabel}>Socios activos</Text>
           </View>
-        ))}
-      </View>
-
-      {/* Cobrabilidad mensual */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Cobrabilidad mensual (ARS)</Text>
-        {COBRABILIDAD_DATA.map(item => (
-          <View key={item.mes} style={styles.cobrabilidadRow}>
-            <Text style={styles.mesLabel}>{item.mes}</Text>
-            <View style={styles.cobrabilidadBars}>
-              <View style={styles.cobrabilidadBarGroup}>
-                <Text style={styles.cobrabilidadBarLabel}>Eventuales</Text>
-                <View style={[styles.cobrabilidadBar, { backgroundColor: Colors.info }]}>
-                  <Text style={styles.cobrabilidadBarValue}>${(item.eventuales / 1000).toFixed(0)}k</Text>
-                </View>
-              </View>
-              <View style={styles.cobrabilidadBarGroup}>
-                <Text style={styles.cobrabilidadBarLabel}>Abonados</Text>
-                <View style={[styles.cobrabilidadBar, { backgroundColor: Colors.success }]}>
-                  <Text style={styles.cobrabilidadBarValue}>${(item.abonados / 1000).toFixed(0)}k</Text>
-                </View>
-              </View>
+          <View style={styles.kpiCard}>
+            <View style={[styles.kpiIcon, { backgroundColor: Colors.accent + '20' }]}>
+              <Ionicons name="cash-outline" size={18} color={Colors.accent} />
             </View>
+            <Text style={styles.kpiValue}>--</Text>
+            <Text style={styles.kpiLabel}>Ingresos mes</Text>
           </View>
-        ))}
-      </View>
+        </View>
 
-      <View style={{ height: 40 }} />
-    </ScrollView>
-  );
-}
-
-function KpiCard({ value, label, color }: { value: string; label: string; color: string }) {
-  return (
-    <View style={[styles.kpiCard, { borderTopColor: color, borderTopWidth: 3 }]}>
-      <Text style={[styles.kpiValue, { color }]}>{value}</Text>
-      <Text style={styles.kpiLabel}>{label}</Text>
+        {/* Empty State para gráficos */}
+        <View style={styles.emptyCard}>
+          <View style={styles.iconContainer}>
+            <Ionicons name="bar-chart-outline" size={48} color={Colors.textMuted} />
+          </View>
+          <Text style={styles.emptyTitle}>Métricas en desarrollo</Text>
+          <Text style={styles.emptySubtitle}>
+            Pronto vas a poder ver gráficos interactivos sobre asistencia, cobrabilidad y ocupación por disciplina en esta pantalla.
+          </Text>
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: { paddingHorizontal: Spacing.md, paddingTop: 60, paddingBottom: Spacing.md },
-  title: { ...Typography.h1, color: Colors.textPrimary },
-  subtitle: { ...Typography.body, color: Colors.textSecondary, marginTop: 4 },
-  kpiGrid: { flexDirection: 'row', paddingHorizontal: Spacing.md, gap: Spacing.sm, marginBottom: Spacing.md },
+  root: { flex: 1, backgroundColor: Colors.background },
+  header: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: 60,
+    paddingBottom: Spacing.xl,
+  },
+  headerEyebrow: {
+    ...Typography.caption,
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '600',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  title: { fontSize: 26, fontWeight: '800', color: Colors.textInverse, letterSpacing: -0.5 },
+  content: {
+    padding: Spacing.md,
+    paddingBottom: 100,
+  },
+  row: { flexDirection: 'row', gap: Spacing.md, marginBottom: Spacing.md },
   kpiCard: {
-    flex: 1, backgroundColor: Colors.surface, borderRadius: Radius.md,
-    borderWidth: 1, borderColor: Colors.border, padding: Spacing.md,
+    flex: 1, backgroundColor: Colors.surface,
+    padding: Spacing.md, borderRadius: Radius.lg,
+    borderWidth: 1, borderColor: Colors.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
   },
-  kpiValue: { ...Typography.h2, fontWeight: '700' },
-  kpiLabel: { ...Typography.caption, color: Colors.textSecondary, marginTop: 4 },
-  section: {
-    margin: Spacing.md, backgroundColor: Colors.surface,
-    borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, padding: Spacing.md,
+  kpiIcon: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginBottom: Spacing.sm },
+  kpiValue: { fontSize: 28, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -1 },
+  kpiLabel: { ...Typography.bodySmall, color: Colors.textSecondary },
+  emptyCard: {
+    backgroundColor: Colors.surface,
+    padding: Spacing.xl, borderRadius: Radius.lg,
+    borderWidth: 1, borderColor: Colors.border,
+    alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
   },
-  sectionTitle: { ...Typography.h3, color: Colors.textPrimary, marginBottom: Spacing.md },
-  barRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm, gap: Spacing.sm },
-  barLabel: { ...Typography.bodySmall, color: Colors.textSecondary, width: 72 },
-  barTrack: {
-    flex: 1, height: 10, backgroundColor: Colors.border, borderRadius: Radius.full, overflow: 'hidden',
+  iconContainer: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: Colors.background,
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: Spacing.lg,
+    borderWidth: 1, borderColor: Colors.border,
   },
-  barFill: { height: '100%', borderRadius: Radius.full },
-  barValue: { ...Typography.bodySmall, fontWeight: '600', color: Colors.textPrimary, width: 36, textAlign: 'right' },
-  cobrabilidadRow: {
-    flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm, gap: Spacing.sm,
-  },
-  mesLabel: { ...Typography.bodySmall, color: Colors.textSecondary, width: 28 },
-  cobrabilidadBars: { flex: 1, flexDirection: 'row', gap: Spacing.sm },
-  cobrabilidadBarGroup: { flex: 1 },
-  cobrabilidadBarLabel: { ...Typography.caption, color: Colors.textMuted, marginBottom: 2 },
-  cobrabilidadBar: {
-    borderRadius: Radius.sm, padding: Spacing.xs, alignItems: 'center',
-  },
-  cobrabilidadBarValue: { ...Typography.caption, color: Colors.textInverse, fontWeight: '600' },
+  emptyTitle: { ...Typography.h3, color: Colors.textPrimary, marginBottom: Spacing.sm },
+  emptySubtitle: { ...Typography.body, color: Colors.textSecondary, textAlign: 'center' },
 });
