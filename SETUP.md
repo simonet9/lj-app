@@ -13,7 +13,7 @@ Esta guía explica cómo levantar la aplicación móvil en tu entorno local. La 
 1.  **Clonar el repositorio:**
     Descarga el código del proyecto a tu máquina local.
     ```bash
-    git clone [https://github.com/mino-tar/lj-app.git](https://github.com/mino-tar/lj-app.git)
+    git clone https://github.com/simonet9/lj-app.git
     cd lj-app
     ```
 2.  **Instalar dependencias:**
