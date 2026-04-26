@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@context/AuthContext';
 import { Colors, Typography, Spacing, Radius } from '@constants/theme';
@@ -6,10 +6,32 @@ import { Colors, Typography, Spacing, Radius } from '@constants/theme';
 export default function AdminPerfilScreen() {
   const { usuario, signOut } = useAuth();
 
-  function handleSignOut() {
+  async function handleSignOut() {
+    if (Platform.OS === 'web') {
+      const confirm = window.confirm('¿Querés cerrar tu sesión?');
+      if (confirm) {
+        try {
+          await signOut();
+        } catch (error: any) {
+          window.alert('Error: ' + (error.message || 'No se pudo cerrar sesión'));
+        }
+      }
+      return;
+    }
+
     Alert.alert('Cerrar sesión', '¿Querés cerrar tu sesión?', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Cerrar sesión', style: 'destructive', onPress: signOut },
+      { 
+        text: 'Cerrar sesión', 
+        style: 'destructive', 
+        onPress: async () => {
+          try {
+            await signOut();
+          } catch (error: any) {
+            Alert.alert('Error', error.message || 'No se pudo cerrar sesión');
+          }
+        } 
+      },
     ]);
   }
 

@@ -6,11 +6,13 @@ import {
 } from 'react-native';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@context/AuthContext';
 import { Colors, Typography, Spacing, Radius } from '@constants/theme';
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -35,17 +37,22 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
     >
       <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
+        bounces={false}
       >
         {/* Hero */}
-        <View style={styles.hero}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>L&J</Text>
+        <View style={[styles.hero, { paddingTop: insets.top + 60 }]}>
+          <View style={styles.logoWrapOuter}>
+            <View style={styles.logoContainer}>
+              <Text style={styles.logoText}>L&J</Text>
+            </View>
           </View>
           <Text style={styles.heroTitle}>Centro Deportivo</Text>
           <Text style={styles.heroSubtitle}>Tu espacio de entrenamiento</Text>
@@ -118,6 +125,8 @@ export default function LoginScreen() {
           {/* Divider */}
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>o</Text>
+            <View style={styles.dividerLine} />
           </View>
 
           {/* Footer link */}
@@ -140,31 +149,41 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.primary,
   },
+  scrollView: {
+    flex: 1,
+  },
   scroll: {
     flexGrow: 1,
   },
   hero: {
     alignItems: 'center',
-    paddingTop: 80,
     paddingBottom: Spacing.xxl,
     paddingHorizontal: Spacing.lg,
   },
+  logoWrapOuter: {
+    width: 104, height: 104,
+    borderRadius: 52,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
   logoContainer: {
-    width: 88,
-    height: 88,
-    borderRadius: 26,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     backgroundColor: Colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.md,
     shadowColor: Colors.accent,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.5,
     shadowRadius: 16,
     elevation: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
   },
   logoText: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '900',
     color: Colors.textInverse,
     letterSpacing: -1,
@@ -222,11 +241,9 @@ const styles = StyleSheet.create({
   },
   inputWrapperFocused: {
     borderColor: Colors.accent,
-    shadowColor: Colors.accent,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 2,
+    backgroundColor: '#fff',
+    // IMPORTANTE: No modificar elevation dinámicamente en Android al hacer focus.
+    // Eso causa que la vista nativa se redibuje y pierda el foco del teclado al instante.
   },
   inputIcon: {
     marginRight: Spacing.sm,
@@ -279,6 +296,14 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 1,
     backgroundColor: Colors.border,
+  },
+  dividerText: {
+    ...Typography.caption,
+    color: Colors.textMuted,
+    marginHorizontal: Spacing.md,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    fontWeight: '600',
   },
   footer: {
     flexDirection: 'row',

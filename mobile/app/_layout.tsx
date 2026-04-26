@@ -15,26 +15,32 @@ function RootLayoutNav() {
     if (loading) return;
     SplashScreen.hideAsync();
 
-    const inAuthGroup = segments[0] === '(auth)';
+    // Small delay to ensure the navigation state is completely ready
+    setTimeout(() => {
+      const inAuthGroup = segments[0] === '(auth)';
 
-    if (!usuario && !inAuthGroup) {
-      // Sin sesión → ir a login
-      router.replace('/(auth)/login');
-    } else if (usuario && inAuthGroup) {
-      // Con sesión → ir a la sección del rol
-      switch (usuario.rol) {
-        case 'socio':
-          router.replace('/(socio)/clases');
-          break;
-        case 'gestor':
-          router.replace('/(gestor)/agenda');
-          break;
-        case 'admin':
-          router.replace('/(admin)/metricas');
-          break;
+      if (!usuario && !inAuthGroup) {
+        // Sin sesión → ir a login
+        router.replace('/(auth)/login');
+      } else if (usuario && inAuthGroup) {
+        console.log('[RootLayoutNav] User logged in, attempting redirect. Rol:', usuario.rol);
+        // Con sesión → ir a la sección del rol
+        switch (usuario.rol) {
+          case 'socio':
+            router.replace('/(socio)/clases');
+            break;
+          case 'gestor':
+            router.replace('/(gestor)/agenda');
+            break;
+          case 'admin':
+            router.replace('/(admin)/metricas');
+            break;
+          default:
+            console.log('[RootLayoutNav] Unrecognized role or undefined:', usuario.rol);
+        }
       }
-    }
-  }, [usuario, loading]);
+    }, 10);
+  }, [usuario, loading, segments]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Alert, Platform } from 'react-native';
 import { supabase } from '@services/supabase';
 import type { AuthContextType, Usuario, SignUpData } from '@app-types/index';
 import type { Session } from '@supabase/supabase-js';
@@ -35,18 +36,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function fetchUsuario(userId: string) {
-    const { data, error } = await supabase
-      .from('usuarios')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    try {
+      console.log('[AuthContext] Fetching profile for userId:', userId);
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-    if (error) {
-      console.error('Error al obtener usuario:', error.message);
-    } else {
-      setUsuario(data as Usuario);
+      if (error) {
+        console.error('[AuthContext] Error al obtener usuario:', error.message);
+        if (Platform.OS === 'web') {
+          window.alert(`Error al obtener perfil: ${error.message}`);
+        } else {
+          Alert.alert('Error', `Error al obtener perfil: ${error.message}`);
+        }
+      } else {
+        console.log('[AuthContext] Profile fetched successfully. Rol:', data?.rol);
+        setUsuario(data as Usuario);
+      }
+    } catch (err: any) {
+      console.error('[AuthContext] Exception in fetchUsuario:', err.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function signIn(email: string, password: string) {

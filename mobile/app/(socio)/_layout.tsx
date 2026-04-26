@@ -1,6 +1,17 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Platform } from 'react-native';
 import { Colors } from '@constants/theme';
+
+type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
+
+function TabIcon({
+  name, nameActive, color, focused,
+}: {
+  name: IoniconsName; nameActive: IoniconsName; color: string; focused: boolean;
+}) {
+  return <Ionicons name={focused ? nameActive : name} size={24} color={color} />;
+}
 
 export default function SocioLayout() {
   return (
@@ -13,17 +24,32 @@ export default function SocioLayout() {
           backgroundColor: Colors.surface,
           borderTopColor: Colors.border,
           borderTopWidth: 1,
-          paddingBottom: 4,
+          minHeight: Platform.OS === 'ios' ? 88 : 65,
+          paddingBottom: Platform.OS === 'ios' ? 28 : 10,
+          paddingTop: 10,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          elevation: 8,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '500' },
+        tabBarItemStyle: {
+          paddingVertical: 4,
+        },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
       }}
     >
       <Tabs.Screen
         name="clases"
         options={{
           title: 'Clases',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar-outline" color={color} size={size} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon
+              name="calendar-outline"
+              nameActive="calendar"
+              color={color}
+              focused={focused}
+            />
           ),
         }}
       />
@@ -31,8 +57,13 @@ export default function SocioLayout() {
         name="reservas"
         options={{
           title: 'Mis reservas',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bookmark-outline" color={color} size={size} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon
+              name="bookmark-outline"
+              nameActive="bookmark"
+              color={color}
+              focused={focused}
+            />
           ),
         }}
       />
@@ -40,8 +71,13 @@ export default function SocioLayout() {
         name="abono"
         options={{
           title: 'Abono',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="card-outline" color={color} size={size} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon
+              name="card-outline"
+              nameActive="card"
+              color={color}
+              focused={focused}
+            />
           ),
         }}
       />
@@ -49,8 +85,13 @@ export default function SocioLayout() {
         name="perfil"
         options={{
           title: 'Perfil',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" color={color} size={size} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon
+              name="person-outline"
+              nameActive="person"
+              color={color}
+              focused={focused}
+            />
           ),
         }}
       />
@@ -58,7 +99,7 @@ export default function SocioLayout() {
       <Tabs.Screen
         name="clase/[id]"
         options={{
-          href: null,          // no aparece en la tab bar
+          href: null,
           tabBarStyle: { display: 'none' },
         }}
       />
