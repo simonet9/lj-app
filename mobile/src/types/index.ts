@@ -17,6 +17,7 @@ export interface Usuario {
   rol: UserRole;
   membresia: MembresiaType | null;
   creditos: number;
+  disciplina: Disciplina | null; // Solo para gestores
   created_at: string;
 }
 
@@ -57,7 +58,20 @@ export interface ListaEspera {
   clase_id: string;
   posicion: number;
   notificado_at: string | null;
+  expira_at: string | null;
   created_at: string;
+}
+
+// ─── Notificaciones ───────────────────────────────────────────────────────────
+export interface Notificacion {
+  id:           string;
+  usuario_id:   string;
+  titulo:       string;
+  cuerpo:       string;
+  leida:        boolean;
+  tipo:         string | null;   // 'espera' | 'cancelacion' | 'recordatorio' | 'renovacion'
+  referencia_id: string | null;  // clase_id cuando tipo = 'espera'
+  created_at:   string;
 }
 
 // ─── Abono ────────────────────────────────────────────────────────────────────
@@ -102,6 +116,7 @@ export interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (data: SignUpData) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshUsuario: () => Promise<void>;
 }
 
 export interface SignUpData {

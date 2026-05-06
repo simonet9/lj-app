@@ -1,19 +1,40 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Platform } from 'react-native';
+import { Platform, View, Text, StyleSheet } from 'react-native';
 import { Colors } from '@constants/theme';
+import { useAuth } from '@context/AuthContext';
+import { useNotificaciones } from '@hooks/useNotificaciones';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
+// ─── Icono con badge opcional ─────────────────────────────────────────────────
+
 function TabIcon({
-  name, nameActive, color, focused,
+  name, nameActive, color, focused, badge,
 }: {
-  name: IoniconsName; nameActive: IoniconsName; color: string; focused: boolean;
+  name: IoniconsName; nameActive: IoniconsName;
+  color: string; focused: boolean; badge?: number;
 }) {
-  return <Ionicons name={focused ? nameActive : name} size={24} color={color} />;
+  return (
+    <View>
+      <Ionicons name={focused ? nameActive : name} size={24} color={color} />
+      {badge !== undefined && badge > 0 && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>
+            {badge > 9 ? '9+' : badge}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
 }
 
+// ─── Layout ───────────────────────────────────────────────────────────────────
+
 export default function SocioLayout() {
+  const { usuario } = useAuth();
+  const { noLeidas } = useNotificaciones(usuario?.id);
+
   return (
     <Tabs
       screenOptions={{
@@ -91,11 +112,12 @@ export default function SocioLayout() {
               nameActive="person"
               color={color}
               focused={focused}
+              badge={noLeidas}
             />
           ),
         }}
       />
-      {/* Ruta de detalle: oculta la tab bar */}
+      {/* Rutas ocultas de la tab bar */}
       <Tabs.Screen
         name="clase/[id]"
         options={{
@@ -103,6 +125,39 @@ export default function SocioLayout() {
           tabBarStyle: { display: 'none' },
         }}
       />
+      <Tabs.Screen
+        name="reserva-confirmada"
+        options={{ href: null, tabBarStyle: { display: 'none' } }}
+      />
+      <Tabs.Screen
+        name="pago-mock"
+        options={{ href: null, tabBarStyle: { display: 'none' } }}
+      />
     </Tabs>
   );
 }
+
+// ─── Estilos ──────────────────────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: Colors.surface,
+  },
+  badgeText: {
+    color: Colors.textInverse,
+    fontSize: 9,
+    fontWeight: '800',
+    lineHeight: 12,
+  },
+});

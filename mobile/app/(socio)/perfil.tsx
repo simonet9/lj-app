@@ -1,36 +1,43 @@
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Platform } from 'react-native';
+import { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@context/AuthContext';
 import { Colors, Typography, Spacing, Radius } from '@constants/theme';
 
 export default function PerfilScreen() {
   const { usuario, signOut } = useAuth();
+  const [signingOut, setSigningOut] = useState(false);
 
   async function handleSignOut() {
     if (Platform.OS === 'web') {
-      const confirm = window.confirm('¿Querés cerrar tu sesión?');
-      if (confirm) {
+      const ok = window.confirm('¿Cerrar sesión?');
+      if (ok) {
+        setSigningOut(true);
         try {
           await signOut();
         } catch (error: any) {
-          window.alert('Error: ' + (error.message || 'No se pudo cerrar sesión'));
+          setSigningOut(false);
+          window.alert(error.message || 'No se pudo cerrar la sesión. Intentá de nuevo.');
         }
       }
       return;
     }
 
-    Alert.alert('Cerrar sesión', '¿Querés cerrar tu sesión?', [
+    Alert.alert('¿Cerrar sesión?', 'Tu sesión quedará cerrada en este dispositivo.', [
       { text: 'Cancelar', style: 'cancel' },
-      { 
-        text: 'Cerrar sesión', 
-        style: 'destructive', 
+      {
+        text: 'Cerrar sesión',
+        style: 'destructive',
         onPress: async () => {
+          setSigningOut(true);
           try {
             await signOut();
+            // ✅ El redirect lo maneja _layout.tsx via onAuthStateChange
           } catch (error: any) {
-            Alert.alert('Error', error.message || 'No se pudo cerrar sesión');
+            setSigningOut(false);
+            Alert.alert('Error', error.message || 'No se pudo cerrar la sesión. Intentá de nuevo.');
           }
-        } 
+        },
       },
     ]);
   }
@@ -69,7 +76,10 @@ export default function PerfilScreen() {
             <Ionicons name="flash" size={24} color={Colors.accent} />
             <View>
               <Text style={styles.creditosLabel}>Créditos disponibles</Text>
-              <Text style={styles.creditosValue}>{usuario.creditos} créditos</Text>
+              <View style={styles.creditosValueRow}>
+                <Text style={styles.creditosNumber}>{usuario.creditos}</Text>
+                <Text style={styles.creditosUnit}> crédito{usuario.creditos !== 1 ? 's' : ''}</Text>
+              </View>
             </View>
           </View>
           <View style={styles.creditosBadge}>
@@ -82,14 +92,26 @@ export default function PerfilScreen() {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>INFORMACIÓN</Text>
         <InfoRow icon="card-outline" label="DNI" value={usuario.dni} />
-        <InfoRow icon="people-outline" label="Membresía" value={esAbonado ? 'Abonado mensual' : 'Eventual'} />
-        <InfoRow icon="shield-outline" label="Rol" value={usuario.rol.charAt(0).toUpperCase() + usuario.rol.slice(1)} last />
+        <InfoRow icon="people-outline" label="Membresía" value={esAbonado ? 'Abonado mensual' : 'Eventual'} last />
       </View>
 
       {/* Cerrar sesión */}
-      <TouchableOpacity style={styles.logoutBtn} onPress={handleSignOut} activeOpacity={0.8}>
-        <Ionicons name="log-out-outline" size={18} color={Colors.danger} />
-        <Text style={styles.logoutText}>Cerrar sesión</Text>
+      <TouchableOpacity
+        style={[styles.logoutBtn, signingOut && styles.logoutBtnDisabled]}
+        onPress={handleSignOut}
+        disabled={signingOut}
+        activeOpacity={0.8}
+        accessibilityLabel="Cerrar sesión"
+        accessibilityRole="button"
+      >
+        {signingOut ? (
+          <ActivityIndicator size="small" color={Colors.danger} />
+        ) : (
+          <>
+            <Ionicons name="log-out-outline" size={18} color={Colors.danger} />
+            <Text style={styles.logoutText}>Cerrar sesión</Text>
+          </>
+        )}
       </TouchableOpacity>
 
       <View style={{ height: 40 }} />
@@ -158,7 +180,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
     borderWidth: 2, borderColor: Colors.primary,
   },
-  nombre: { fontSize: 22, fontWeight: '700', color: Colors.textInverse, marginBottom: 4 },
+  nombre: { ...Typography.h2, color: Colors.textInverse, marginBottom: 4 },
   email: { ...Typography.body, color: 'rgba(255,255,255,0.55)', marginBottom: Spacing.md },
   rolChip: {
     backgroundColor: 'rgba(255,255,255,0.12)',
@@ -183,7 +205,9 @@ const styles = StyleSheet.create({
   },
   creditosLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   creditosLabel: { ...Typography.caption, color: 'rgba(255,255,255,0.6)', marginBottom: 2 },
-  creditosValue: { ...Typography.h3, color: Colors.textInverse, fontWeight: '700' },
+  creditosValueRow: { flexDirection: 'row', alignItems: 'baseline' },
+  creditosNumber: { ...Typography.h2, color: Colors.accent, fontWeight: '800' },
+  creditosUnit: { ...Typography.body, color: 'rgba(255,255,255,0.7)', fontWeight: '500' },
   creditosBadge: {
     backgroundColor: Colors.success + '30',
     borderRadius: Radius.full,
@@ -212,6 +236,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.danger + '50',
     backgroundColor: Colors.dangerLight,
+    minHeight: 52,
   },
+  logoutBtnDisabled: { opacity: 0.6 },
   logoutText: { ...Typography.body, color: Colors.danger, fontWeight: '600' },
 });

@@ -1,36 +1,43 @@
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Platform } from 'react-native';
+import { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@context/AuthContext';
 import { Colors, Typography, Spacing, Radius } from '@constants/theme';
 
 export default function AdminPerfilScreen() {
   const { usuario, signOut } = useAuth();
+  const [signingOut, setSigningOut] = useState(false);
 
   async function handleSignOut() {
     if (Platform.OS === 'web') {
-      const confirm = window.confirm('¿Querés cerrar tu sesión?');
-      if (confirm) {
+      const ok = window.confirm('¿Cerrar sesión?');
+      if (ok) {
+        setSigningOut(true);
         try {
           await signOut();
         } catch (error: any) {
-          window.alert('Error: ' + (error.message || 'No se pudo cerrar sesión'));
+          setSigningOut(false);
+          window.alert(error.message || 'No se pudo cerrar la sesión. Intentá de nuevo.');
         }
       }
       return;
     }
 
-    Alert.alert('Cerrar sesión', '¿Querés cerrar tu sesión?', [
+    Alert.alert('¿Cerrar sesión?', 'Tu sesión quedará cerrada en este dispositivo.', [
       { text: 'Cancelar', style: 'cancel' },
-      { 
-        text: 'Cerrar sesión', 
-        style: 'destructive', 
+      {
+        text: 'Cerrar sesión',
+        style: 'destructive',
         onPress: async () => {
+          setSigningOut(true);
           try {
             await signOut();
+            // ✅ El redirect lo maneja _layout.tsx via onAuthStateChange
           } catch (error: any) {
-            Alert.alert('Error', error.message || 'No se pudo cerrar sesión');
+            setSigningOut(false);
+            Alert.alert('Error', error.message || 'No se pudo cerrar la sesión. Intentá de nuevo.');
           }
-        } 
+        },
       },
     ]);
   }
@@ -65,9 +72,22 @@ export default function AdminPerfilScreen() {
       </View>
 
       {/* Cerrar sesión */}
-      <TouchableOpacity style={styles.logoutBtn} onPress={handleSignOut} activeOpacity={0.8}>
-        <Ionicons name="log-out-outline" size={18} color={Colors.danger} />
-        <Text style={styles.logoutText}>Cerrar sesión</Text>
+      <TouchableOpacity
+        style={[styles.logoutBtn, signingOut && styles.logoutBtnDisabled]}
+        onPress={handleSignOut}
+        disabled={signingOut}
+        activeOpacity={0.8}
+        accessibilityLabel="Cerrar sesión"
+        accessibilityRole="button"
+      >
+        {signingOut ? (
+          <ActivityIndicator size="small" color={Colors.danger} />
+        ) : (
+          <>
+            <Ionicons name="log-out-outline" size={18} color={Colors.danger} />
+            <Text style={styles.logoutText}>Cerrar sesión</Text>
+          </>
+        )}
       </TouchableOpacity>
 
       <View style={{ height: 40 }} />
@@ -141,7 +161,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm,
     marginHorizontal: Spacing.md, marginBottom: Spacing.md, padding: Spacing.md,
     borderRadius: Radius.md, borderWidth: 1.5, borderColor: Colors.danger + '50',
-    backgroundColor: Colors.dangerLight,
+    backgroundColor: Colors.dangerLight, minHeight: 52,
   },
+  logoutBtnDisabled: { opacity: 0.6 },
   logoutText: { ...Typography.body, color: Colors.danger, fontWeight: '600' },
 });

@@ -14,6 +14,21 @@
 | `pagado_at` | `timestamptz` |  |
 | `created_at` | `timestamptz` |  |
 
+## Table `cancelaciones`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `reserva_id` | `uuid` |  |
+| `socio_id` | `uuid` |  |
+| `clase_id` | `uuid` |  |
+| `horas_anticipacion` | `numeric` |  |
+| `credito_devuelto` | `bool` |  |
+| `perdio_descuento` | `bool` |  |
+| `created_at` | `timestamptz` |  |
+
 ## Table `clases`
 
 ### Columns

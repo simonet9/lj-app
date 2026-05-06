@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Alert,
+  StyleSheet, ActivityIndicator,
   KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
+import type { TextInput as RNTextInput } from 'react-native';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,22 +14,27 @@ import { Colors, Typography, Spacing, Radius } from '@constants/theme';
 export default function LoginScreen() {
   const { signIn } = useAuth();
   const insets = useSafeAreaInsets();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [focused, setFocused] = useState<string | null>(null);
+  const [email, setEmail]         = useState('');
+  const [password, setPassword]   = useState('');
+  const [showPass, setShowPass]   = useState(false);
+  const [loading, setLoading]     = useState(false);
+  const [focused, setFocused]     = useState<string | null>(null);
+  // El error solo se muestra tras el primer intento fallido
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const passwordRef = useRef<RNTextInput>(null);
+
+  function clearError() {
+    if (loginError) setLoginError(null);
+  }
 
   async function handleLogin() {
-    if (!email || !password) {
-      Alert.alert('Campos incompletos', 'Completá tu email y contraseña para continuar.');
-      return;
-    }
+    setLoginError(null);
     setLoading(true);
     try {
       await signIn(email.trim().toLowerCase(), password);
+      // ✅ El redirect lo maneja app/_layout.tsx via onAuthStateChange
     } catch (error: any) {
-      Alert.alert('No pudimos iniciar sesión', error.message || 'Revisá tus credenciales e intentá de nuevo.');
+      setLoginError(error.message ?? 'Credenciales incorrectas');
     } finally {
       setLoading(false);
     }
@@ -66,19 +72,32 @@ export default function LoginScreen() {
           {/* Email */}
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>Correo electrónico</Text>
-            <View style={[styles.inputWrapper, focused === 'email' && styles.inputWrapperFocused]}>
-              <Ionicons name="mail-outline" size={18} color={focused === 'email' ? Colors.accent : Colors.textMuted} style={styles.inputIcon} />
+            <View style={[
+              styles.inputWrapper,
+              focused === 'email' && styles.inputWrapperFocused,
+              loginError && styles.inputWrapperError,
+            ]}>
+              <Ionicons
+                name="mail-outline"
+                size={18}
+                color={loginError ? Colors.danger : focused === 'email' ? Colors.accent : Colors.textMuted}
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={styles.input}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={v => { setEmail(v); clearError(); }}
                 placeholder="tu@email.com"
                 placeholderTextColor={Colors.textMuted}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoCorrect={false}
                 autoComplete="email"
+                returnKeyType="next"
+                onSubmitEditing={() => passwordRef.current?.focus()}
                 onFocus={() => setFocused('email')}
                 onBlur={() => setFocused(null)}
+                accessibilityLabel="Correo electrónico"
               />
             </View>
           </View>
@@ -86,23 +105,49 @@ export default function LoginScreen() {
           {/* Password */}
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>Contraseña</Text>
-            <View style={[styles.inputWrapper, focused === 'password' && styles.inputWrapperFocused]}>
-              <Ionicons name="lock-closed-outline" size={18} color={focused === 'password' ? Colors.accent : Colors.textMuted} style={styles.inputIcon} />
+            <View style={[
+              styles.inputWrapper,
+              focused === 'password' && styles.inputWrapperFocused,
+              loginError && styles.inputWrapperError,
+            ]}>
+              <Ionicons
+                name="lock-closed-outline"
+                size={18}
+                color={loginError ? Colors.danger : focused === 'password' ? Colors.accent : Colors.textMuted}
+                style={styles.inputIcon}
+              />
               <TextInput
+                ref={passwordRef}
                 style={[styles.input, styles.inputFlex]}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={v => { setPassword(v); clearError(); }}
                 placeholder="••••••••"
                 placeholderTextColor={Colors.textMuted}
                 secureTextEntry={!showPass}
                 autoComplete="password"
+                returnKeyType="done"
+                onSubmitEditing={handleLogin}
                 onFocus={() => setFocused('password')}
                 onBlur={() => setFocused(null)}
+                accessibilityLabel="Contraseña"
               />
-              <TouchableOpacity onPress={() => setShowPass(v => !v)} style={styles.eyeBtn} activeOpacity={0.7}>
+              <TouchableOpacity
+                onPress={() => setShowPass(v => !v)}
+                style={styles.eyeBtn}
+                activeOpacity={0.7}
+                accessibilityLabel={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              >
                 <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={18} color={Colors.textMuted} />
               </TouchableOpacity>
             </View>
+
+            {/* Banner de error inline — visible solo tras un intento fallido */}
+            {loginError ? (
+              <View style={styles.errorBanner}>
+                <Ionicons name="alert-circle-outline" size={15} color={Colors.danger} />
+                <Text style={styles.errorText}>{loginError}</Text>
+              </View>
+            ) : null}
           </View>
 
           {/* CTA */}
@@ -111,6 +156,8 @@ export default function LoginScreen() {
             onPress={handleLogin}
             disabled={loading}
             activeOpacity={0.85}
+            accessibilityLabel="Iniciar sesión"
+            accessibilityRole="button"
           >
             {loading ? (
               <ActivityIndicator color={Colors.textInverse} />
@@ -244,6 +291,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     // IMPORTANTE: No modificar elevation dinámicamente en Android al hacer focus.
     // Eso causa que la vista nativa se redibuje y pierda el foco del teclado al instante.
+  },
+  inputWrapperError: {
+    borderColor: Colors.danger,
+    backgroundColor: Colors.dangerLight,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+  },
+  errorText: {
+    ...Typography.bodySmall,
+    color: Colors.danger,
+    fontWeight: '600',
+    flex: 1,
   },
   inputIcon: {
     marginRight: Spacing.sm,
