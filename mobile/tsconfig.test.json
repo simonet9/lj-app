@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "jsx": "react",
+    "types": ["jest", "node"],
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*":            ["src/*"],
+      "@components/*":  ["src/components/*"],
+      "@screens/*":     ["src/screens/*"],
+      "@hooks/*":       ["src/hooks/*"],
+      "@context/*":     ["src/context/*"],
+      "@services/*":    ["src/services/*"],
+      "@utils/*":       ["src/utils/*"],
+      "@constants/*":   ["src/constants/*"],
+      "@app-types/*":   ["src/types/*"],
+      "@app-types/index": ["src/types/index.ts"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", "__tests__/**/*.ts"]
+}
