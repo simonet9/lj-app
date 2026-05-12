@@ -23,11 +23,7 @@ const NIVELES: { value: NivelClase; label: string }[] = [
   { value: 'avanzado',     label: NivelLabel.avanzado     },
 ];
 
-const DURACIONES: { value: 60 | 90 | 120; label: string }[] = [
-  { value: 60,  label: '60 min' },
-  { value: 90,  label: '90 min' },
-  { value: 120, label: '120 min' },
-];
+
 
 const HORARIOS = generarHorariosDisponibles();
 
@@ -132,7 +128,7 @@ export default function CrearClaseScreen() {
 
   const {
     form, loading, error,
-    setNivel, setFecha, setHoraInicio, setDuracion, setCupo,
+    setNivel, setFecha, setHoraInicio, setCupo,
     crearClase, esFormValido,
   } = useCrearClase(gestorId, disciplina);
 
@@ -238,19 +234,8 @@ export default function CrearClaseScreen() {
             accentColor={accentColor}
           />
           <Text style={styles.hint}>
-            Fin estimado: {calcularHoraFin(form.horaInicio, form.duracion)} ({form.duracion} min)
+            Duración: 1 hora
           </Text>
-        </View>
-
-        {/* ── Duración ─────────────────────────────────────────────────── */}
-        <View style={styles.section}>
-          <FieldLabel icon="hourglass-outline" label="Duración" />
-          <OptionPills
-            options={DURACIONES}
-            value={form.duracion}
-            onChange={setDuracion}
-            accentColor={accentColor}
-          />
         </View>
 
         {/* ── Cupo máximo (stepper) ─────────────────────────────────────── */}
@@ -303,7 +288,7 @@ export default function CrearClaseScreen() {
           <View style={styles.resumenRow}>
             <Text style={styles.resumenLabel}>Horario</Text>
             <Text style={styles.resumenValue}>
-              {form.horaInicio} — {calcularHoraFin(form.horaInicio, form.duracion)}
+              {form.horaInicio} — {calcularHoraFin(form.horaInicio)}
             </Text>
           </View>
           <View style={styles.resumenRow}>

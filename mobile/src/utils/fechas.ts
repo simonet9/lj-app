@@ -8,12 +8,19 @@
  *   calcularHoraFin('18:00', 60)  → '19:00'
  *   calcularHoraFin('23:00', 90)  → '00:30'  (siguiente día — BD lo maneja)
  */
-export function calcularHoraFin(inicio: string, duracionMinutos: number): string {
-  const [hh, mm] = inicio.split(':').map(Number);
-  const totalMin = hh * 60 + mm + duracionMinutos;
-  const horaFin  = Math.floor(totalMin / 60) % 24;
-  const minFin   = totalMin % 60;
-  return `${String(horaFin).padStart(2, '0')}:${String(minFin).padStart(2, '0')}`;
+export function calcularHoraFin(horaInicio: string): string {
+  const [h, m] = horaInicio.slice(0, 5).split(':').map(Number);
+  const totalMin = h * 60 + m + 60;
+  const hFin = Math.floor(totalMin / 60) % 24;
+  const mFin = totalMin % 60;
+  return `${String(hFin).padStart(2, '0')}:${String(mFin).padStart(2, '0')}`;
+}
+
+/**
+ * Formatea la hora a HH:MM sin segundos
+ */
+export function formatHora(hora: string): string {
+  return hora.slice(0, 5); // "18:00:00" → "18:00"
 }
 
 /**

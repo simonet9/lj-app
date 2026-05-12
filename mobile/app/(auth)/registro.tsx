@@ -11,8 +11,6 @@ import { Colors, Typography, Spacing, Radius } from '@constants/theme';
 
 // ─── Tipos de errores por campo ───────────────────────────────────────────────
 interface FormErrors {
-  nombre?: string;
-  apellido?: string;
   dni?: string;
   email?: string;
   password?: string;
@@ -21,28 +19,15 @@ interface FormErrors {
 }
 
 // ─── Regex de validación ──────────────────────────────────────────────────────
-const SOLO_LETRAS = /^[A-Za-záéíóúÁÉÍÓÚñÑüÜ\s]+$/;
 const DNI_REGEX    = /^\d{7,8}$/;
 const EMAIL_REGEX  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // ─── Validación completa del formulario ───────────────────────────────────────
 function validarFormulario(form: {
-  nombre: string; apellido: string; dni: string;
+  dni: string;
   email: string; password: string; confirmPassword: string;
 }): FormErrors {
   const errors: FormErrors = {};
-
-  if (!form.nombre.trim()) {
-    errors.nombre = 'El nombre es obligatorio.';
-  } else if (!SOLO_LETRAS.test(form.nombre.trim())) {
-    errors.nombre = 'Solo se permiten letras.';
-  }
-
-  if (!form.apellido.trim()) {
-    errors.apellido = 'El apellido es obligatorio.';
-  } else if (!SOLO_LETRAS.test(form.apellido.trim())) {
-    errors.apellido = 'Solo se permiten letras.';
-  }
 
   if (!form.dni.trim()) {
     errors.dni = 'El DNI es obligatorio.';
@@ -76,7 +61,7 @@ export default function RegistroScreen() {
   const { signUp } = useAuth();
 
   const [form, setForm] = useState({
-    nombre: '', apellido: '', email: '', dni: '', password: '', confirmPassword: '',
+    email: '', dni: '', password: '', confirmPassword: '',
   });
   const [errors, setErrors]     = useState<FormErrors>({});
   const [showPass, setShowPass] = useState(false);
@@ -107,8 +92,6 @@ export default function RegistroScreen() {
         email:    form.email.trim().toLowerCase(),
         password: form.password,
         dni:      form.dni.trim(),
-        nombre:   form.nombre.trim(),
-        apellido: form.apellido.trim(),
       });
       // ✅ El redirect a /(socio)/clases lo maneja AuthContext via onAuthStateChange
     } catch (error: any) {
@@ -173,51 +156,6 @@ export default function RegistroScreen() {
 
           {/* ── Datos personales ─────────────────────────────────────── */}
           <Text style={styles.sectionLabel}>DATOS PERSONALES</Text>
-
-          {/* Nombre / Apellido en fila */}
-          <View style={styles.row}>
-            {/* Nombre */}
-            <View style={styles.halfField}>
-              <Text style={styles.label}>Nombre</Text>
-              <View style={wrapperStyle('nombre', !!errors.nombre)}>
-                <TextInput
-                  style={styles.input}
-                  value={form.nombre}
-                  onChangeText={v => setField('nombre', v)}
-                  placeholder="Juan"
-                  placeholderTextColor={Colors.textMuted}
-                  autoCapitalize="words"
-                  onFocus={() => setFocused('nombre')}
-                  onBlur={() => setFocused(null)}
-                  accessibilityLabel="Nombre"
-                />
-              </View>
-              {errors.nombre ? (
-                <Text style={styles.fieldError}>{errors.nombre}</Text>
-              ) : null}
-            </View>
-
-            {/* Apellido */}
-            <View style={styles.halfField}>
-              <Text style={styles.label}>Apellido</Text>
-              <View style={wrapperStyle('apellido', !!errors.apellido)}>
-                <TextInput
-                  style={styles.input}
-                  value={form.apellido}
-                  onChangeText={v => setField('apellido', v)}
-                  placeholder="Pérez"
-                  placeholderTextColor={Colors.textMuted}
-                  autoCapitalize="words"
-                  onFocus={() => setFocused('apellido')}
-                  onBlur={() => setFocused(null)}
-                  accessibilityLabel="Apellido"
-                />
-              </View>
-              {errors.apellido ? (
-                <Text style={styles.fieldError}>{errors.apellido}</Text>
-              ) : null}
-            </View>
-          </View>
 
           {/* DNI */}
           <View style={styles.fieldGroup}>

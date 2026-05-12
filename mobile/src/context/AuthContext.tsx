@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from('usuarios')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('[AuthContext] Error al obtener usuario:', error.message);
@@ -51,9 +51,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           Alert.alert('Error', `Error al obtener perfil: ${error.message}`);
         }
-      } else {
-        console.log('[AuthContext] Profile fetched successfully. Rol:', data?.rol);
+      } else if (data) {
+        console.log('[AuthContext] Profile fetched successfully. Rol:', data.rol);
         setUsuario(data as Usuario);
+      } else {
+        console.log('[AuthContext] Perfil aún no disponible (posible race condition).');
       }
     } catch (err: any) {
       console.error('[AuthContext] Exception in fetchUsuario:', err.message);
@@ -106,8 +108,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       id: authData.user.id,
       email: data.email,
       dni: data.dni,
-      nombre: data.nombre,
-      apellido: data.apellido,
       rol: 'socio',
       membresia: 'eventual',
       creditos: 0,
@@ -147,6 +147,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         { field: 'general' }
       );
     }
+
+    // Asegurar que el perfil se carga en el estado después de la inserción exitosa
+    await fetchUsuario(authData.user.id);
   }
 
   async function signOut() {

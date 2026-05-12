@@ -11,6 +11,7 @@ import { inscribirseEnLista, obtenerPosicionEnLista } from '@services/listaEsper
 import { reservarClaseAbonado, calcularSena, verificarConflictoHorario } from '@services/reservas';
 import { useAuth } from '@context/AuthContext';
 import { Colors, Typography, Spacing, Radius, DisciplinaLabel, NivelLabel } from '@constants/theme';
+import { formatHora } from '@utils/fechas';
 import type { Clase, ListaEspera } from '@app-types/index';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -32,7 +33,8 @@ export default function ClaseDetailScreen() {
 
   // ── Estado de datos ───────────────────────────────────────────────────────
   const [clase, setClase]               = useState<Clase | null>(null);
-  const [entradaLista, setEntradaLista] = useState<ListaEspera | null>(null);
+  const [entradaLista, setEntradaLista] = useState<{posicion: number} | null>(null);
+  const [tieneReserva, setTieneReserva] = useState(false);
   const [loading, setLoading]           = useState(true);
 
   // ── Estado de acciones ────────────────────────────────────────────────────
@@ -46,20 +48,33 @@ export default function ClaseDetailScreen() {
     async function cargar() {
       setLoading(true);
 
-      // Clase y posición en lista se cargan en paralelo
-      const [claseRes, listaRes] = await Promise.all([
+      // Clase, lista y reserva
+      const [claseRes, listaRes, reservaRes] = await Promise.all([
         supabase
           .from('clases')
-          .select('*, gestor:usuarios(nombre, apellido)')
+          .select('*, gestor:usuarios(id)')
           .eq('id', id)
           .single(),
-        obtenerPosicionEnLista(usuario!.id, id),
+        supabase
+          .from('lista_espera')
+          .select('posicion')
+          .eq('clase_id', id)
+          .eq('socio_id', usuario!.id)
+          .maybeSingle(),
+        supabase
+          .from('reservas')
+          .select('id')
+          .eq('clase_id', id)
+          .eq('socio_id', usuario!.id)
+          .eq('estado', 'confirmada')
+          .maybeSingle()
       ]);
 
       if (!claseRes.error && claseRes.data) {
         setClase(claseRes.data as Clase);
       }
-      setEntradaLista(listaRes);
+      setEntradaLista(listaRes.data);
+      setTieneReserva(!!reservaRes.data);
       setLoading(false);
     }
 
@@ -71,26 +86,19 @@ export default function ClaseDetailScreen() {
     if (!clase || !usuario) return;
     setInscribiendo(true);
     try {
-      const { posicion } = await inscribirseEnLista(usuario.id, clase.id);
+      const data = await inscribirseEnLista(usuario.id, clase.id);
       // Actualizar estado local para reflejar la nueva posición sin recargar
       setEntradaLista({
-        id: '',                // será asignado por Supabase, no crítico aquí
-        socio_id: usuario.id,
-        clase_id: clase.id,
-        posicion,
-        notificado_at: null,
-        expira_at: null,       // no aplica hasta que el trigger lo asigne
-        created_at: new Date().toISOString(),
+        posicion: data.posicion,
       });
       Alert.alert(
         'Lista de espera ✓',
-        `Quedaste en la posición ${posicion} de la lista de espera. Te avisaremos si se libera un lugar.`,
+        `Quedaste en la posición ${data.posicion} de la lista de espera. Te avisaremos si se libera un lugar.`,
         [{ text: 'Entendido', style: 'default' }],
       );
     } catch (err: any) {
-      // InscripcionFailure es un objeto plano, no una instancia de Error
       const mensaje: string =
-        err?.mensaje ?? 'No se pudo procesar la solicitud. Intentá de nuevo.';
+        err?.message ?? 'No se pudo procesar la solicitud. Intentá de nuevo.';
       Alert.alert('No se pudo inscribir', mensaje);
     } finally {
       setInscribiendo(false);
@@ -231,12 +239,13 @@ export default function ClaseDetailScreen() {
    *  3. completa + sin lista → botón lista de espera (amarillo)
    *  4. disponible          → botón reservar (verde)
    */
-  type CtaMode = 'reservar' | 'lista_espera' | 'en_lista' | 'suspendida';
+  type CtaMode = 'reservar' | 'lista_espera' | 'en_lista' | 'suspendida' | 'ninguno';
   function getCtaMode(): CtaMode {
     if (suspendida)                    return 'suspendida';
     if (completa && yaEnLista)         return 'en_lista';
     if (completa && !yaEnLista)        return 'lista_espera';
-    return 'reservar';
+    if (!completa && !tieneReserva)    return 'reservar';
+    return 'ninguno';
   }
   const ctaMode = getCtaMode();
 
@@ -257,7 +266,7 @@ export default function ClaseDetailScreen() {
         <View style={styles.heroContent}>
           <Text style={styles.heroEmoji}>{emoji}</Text>
           <Text style={styles.heroDisciplina}>{DisciplinaLabel[clase.disciplina] ?? clase.disciplina}</Text>
-          <Text style={styles.heroHorario}>{clase.hora_inicio} — {clase.hora_fin}</Text>
+          <Text style={styles.heroHorario}>{formatHora(clase.hora_inicio)} — {formatHora(clase.hora_fin)}</Text>
           <Text style={styles.heroFecha}>{formatFecha(clase.fecha)}</Text>
         </View>
 
@@ -319,15 +328,7 @@ export default function ClaseDetailScreen() {
           <Text style={styles.cardLabel}>DETALLES</Text>
           <DetailRow icon="layers-outline" label="Nivel" value={NivelLabel[clase.nivel] ?? clase.nivel} />
           <DetailRow icon="calendar-outline" label="Fecha" value={formatFecha(clase.fecha)} capitalize />
-          <DetailRow icon="time-outline" label="Horario" value={`${clase.hora_inicio} — ${clase.hora_fin}`} />
-          {clase.gestor && (
-            <DetailRow
-              icon="person-outline"
-              label="Gestor"
-              value={`${clase.gestor.nombre} ${clase.gestor.apellido}`}
-              last
-            />
-          )}
+          <DetailRow icon="time-outline" label="Horario" value={`${formatHora(clase.hora_inicio)} — ${formatHora(clase.hora_fin)}`} last />
         </View>
 
         {/* Reglas de cancelación */}

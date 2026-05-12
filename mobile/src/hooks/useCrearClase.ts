@@ -9,7 +9,6 @@ export interface FormCrearClase {
   nivel:      NivelClase;
   fecha:      string;    // 'YYYY-MM-DD'
   horaInicio: string;    // 'HH:MM'
-  duracion:   60 | 90 | 120;
   cupo:       number;
 }
 
@@ -31,7 +30,6 @@ export interface UseCrearClaseResult {
   setNivel:      (v: NivelClase)      => void;
   setFecha:      (v: string)           => void;
   setHoraInicio: (v: string)           => void;
-  setDuracion:   (v: 60 | 90 | 120)   => void;
   setCupo:       (v: number)           => void;
   // Acción principal
   crearClase:  () => Promise<ClaseCreada | null>;
@@ -48,7 +46,6 @@ const FORM_INICIAL: FormCrearClase = {
   nivel:      'intermedio',
   fecha:      sumarDias(hoyISO(), 1), // Mañana por defecto (no puede ser hoy)
   horaInicio: '18:00',
-  duracion:   60,
   cupo:       10,
 };
 
@@ -93,7 +90,6 @@ export function useCrearClase(
   const setNivel      = useCallback((v: NivelClase)    => setForm(f => ({ ...f, nivel: v })),      []);
   const setFecha      = useCallback((v: string)         => setForm(f => ({ ...f, fecha: v })),      []);
   const setHoraInicio = useCallback((v: string)         => setForm(f => ({ ...f, horaInicio: v })), []);
-  const setDuracion   = useCallback((v: 60 | 90 | 120) => setForm(f => ({ ...f, duracion: v })),   []);
   const setCupo       = useCallback((v: number)         =>
     setForm(f => ({ ...f, cupo: Math.min(CUPO_MAX, Math.max(CUPO_MIN, v)) })), []);
 
@@ -114,7 +110,7 @@ export function useCrearClase(
     setLoading(true);
     setError(null);
 
-    const horaFin = calcularHoraFin(form.horaInicio, form.duracion);
+    const horaFin = calcularHoraFin(form.horaInicio);
 
     try {
       const { data, error: supaErr } = await supabase
@@ -157,7 +153,6 @@ export function useCrearClase(
     setNivel,
     setFecha,
     setHoraInicio,
-    setDuracion,
     setCupo,
     crearClase,
     esFormValido,

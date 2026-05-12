@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, DisciplinaLabel, NivelLabel, Radius, Spacing, Typography } from '@constants/theme';
+import { formatHora } from '@utils/fechas';
 import type { Clase } from '@app-types/index';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -31,15 +32,16 @@ interface Props {
 
 export function ClassCard({ clase, onPress }: Props) {
   const isCompleta      = clase.estado === 'completa' || clase.cupo_disponible === 0;
+  const isSuspendida    = clase.estado === 'suspendida';
   const disciplineColor = disciplinaColor(clase.disciplina);
 
   return (
     <TouchableOpacity
-      style={[styles.container, isCompleta && styles.containerDisabled]}
+      style={[styles.container, isSuspendida && styles.containerDisabled]}
       onPress={onPress}
       activeOpacity={0.75}
-      disabled={isCompleta}
-      accessibilityLabel={`Clase de ${DisciplinaLabel[clase.disciplina] ?? clase.disciplina}, ${clase.hora_inicio} a ${clase.hora_fin}`}
+      disabled={isSuspendida}
+      accessibilityLabel={`Clase de ${DisciplinaLabel[clase.disciplina] ?? clase.disciplina}, ${formatHora(clase.hora_inicio)} a ${formatHora(clase.hora_fin)}`}
       accessibilityRole="button"
     >
       {/* ── Barra lateral de color por disciplina (4 px) ───────────────────── */}
@@ -55,27 +57,27 @@ export function ClassCard({ clase, onPress }: Props) {
             </Text>
           </View>
 
-          {/* Badge de cupo: "X lugares" (verde) | "Completa" (rojo) */}
+          {/* Badge de cupo: "X lugares" (verde) | "Completa" (rojo) | "Suspendida" (gris) */}
           <View style={[
             styles.cupoBadge,
-            { backgroundColor: isCompleta ? Colors.dangerLight : Colors.successLight },
+            { backgroundColor: isSuspendida ? Colors.border : (isCompleta ? Colors.dangerLight : Colors.successLight) },
           ]}>
             <View style={[
               styles.cupoDot,
-              { backgroundColor: isCompleta ? Colors.danger : Colors.success },
+              { backgroundColor: isSuspendida ? Colors.textMuted : (isCompleta ? Colors.danger : Colors.success) },
             ]} />
             <Text style={[
               styles.cupoText,
-              { color: isCompleta ? Colors.danger : Colors.success },
+              { color: isSuspendida ? Colors.textMuted : (isCompleta ? Colors.danger : Colors.success) },
             ]}>
-              {isCompleta ? 'Completa' : `${clase.cupo_disponible} lugar${clase.cupo_disponible !== 1 ? 'es' : ''}`}
+              {isSuspendida ? 'Suspendida' : (isCompleta ? 'Completa' : `${clase.cupo_disponible} lugar${clase.cupo_disponible !== 1 ? 'es' : ''}`)}
             </Text>
           </View>
         </View>
 
         {/* ── Horario (Typography.h3) ────────────────────────────────────────── */}
         <Text style={styles.horario}>
-          {clase.hora_inicio} – {clase.hora_fin}
+          {formatHora(clase.hora_inicio)} – {formatHora(clase.hora_fin)}
         </Text>
 
         {/* ── Fecha en español largo ─────────────────────────────────────────── */}
@@ -91,8 +93,8 @@ export function ClassCard({ clase, onPress }: Props) {
             </Text>
           </View>
 
-          {/* Flecha de acción solo si hay cupo */}
-          {!isCompleta && (
+          {/* Flecha de acción solo si no está suspendida */}
+          {!isSuspendida && (
             <View style={styles.arrowCircle}>
               <Ionicons name="arrow-forward" size={13} color={Colors.accent} />
             </View>

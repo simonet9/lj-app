@@ -103,8 +103,6 @@
 | `id` | `uuid` | Primary |
 | `email` | `text` |  Unique |
 | `dni` | `text` |  Unique |
-| `nombre` | `text` |  |
-| `apellido` | `text` |  |
 | `rol` | `user_role` |  |
 | `membresia` | `membresia_type` |  Nullable |
 | `creditos` | `int4` |  |

@@ -44,7 +44,7 @@ export default function AdminPerfilScreen() {
 
   if (!usuario) return null;
 
-  const iniciales = `${usuario.nombre[0]}${usuario.apellido[0]}`.toUpperCase();
+  const iniciales = usuario.email.substring(0, 2).toUpperCase();
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -56,7 +56,7 @@ export default function AdminPerfilScreen() {
             <Text style={styles.avatarText}>{iniciales}</Text>
           </View>
         </View>
-        <Text style={styles.nombre}>{usuario.nombre} {usuario.apellido}</Text>
+        <Text style={styles.nombre}>{usuario.email.split('@')[0]}</Text>
         <Text style={styles.email}>{usuario.email}</Text>
         <View style={styles.rolChip}>
           <Ionicons name="settings-outline" size={14} color="rgba(255,255,255,0.85)" />

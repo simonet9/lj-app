@@ -78,9 +78,7 @@ async function signUp(data: SignUpData & { dni: string }) {
     password: data.password,
     options: {
       data: {
-        nombre:   data.nombre,
-        apellido: data.apellido,
-        dni:      data.dni,
+        dni: data.dni,
       },
     },
   });
@@ -119,8 +117,6 @@ describe('HU-01 — Registro de usuario', () => {
       result = await signUp({
         email:    nuevoEmail,
         password: 'TestPass2026!',
-        nombre:   'Test',
-        apellido: 'Registro',
         dni:      nuevoDni,
       });
     } catch (err: any) {
@@ -145,8 +141,6 @@ describe('HU-01 — Registro de usuario', () => {
       const result = await signUp({
         email:    EMAIL_EVENTUAL,
         password: 'OtraPass2026!',
-        nombre:   'Duplicado',
-        apellido: 'Email',
         dni:      '00000001',
       });
       // Si llegamos aquí, Supabase devolvió éxito sin error.
@@ -187,8 +181,6 @@ describe('HU-01 — Registro de usuario', () => {
       signUp({
         email:    `otro.email.${Date.now()}@test.lj.com`,
         password: 'Pass2026!',
-        nombre:   'Otro',
-        apellido: 'Usuario',
         dni:      dniExistente,
       }),
     ).rejects.toThrow('El DNI ingresado ya se encuentra registrado');

@@ -44,7 +44,7 @@ export default function PerfilScreen() {
 
   if (!usuario) return null;
 
-  const iniciales = `${usuario.nombre[0]}${usuario.apellido[0]}`.toUpperCase();
+  const iniciales = usuario.email.substring(0, 2).toUpperCase();
   const esAbonado = usuario.membresia === 'abonado';
 
   return (
@@ -62,7 +62,7 @@ export default function PerfilScreen() {
             </View>
           )}
         </View>
-        <Text style={styles.nombre}>{usuario.nombre} {usuario.apellido}</Text>
+        <Text style={styles.nombre}>{usuario.email.split('@')[0]}</Text>
         <Text style={styles.email}>{usuario.email}</Text>
         <View style={styles.rolChip}>
           <Text style={styles.rolText}>{esAbonado ? 'Socio Abonado' : 'Socio Eventual'}</Text>

@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@services/supabase';
 import { useAuth } from '@context/AuthContext';
 import { Colors, Typography, Spacing, Radius, DisciplinaLabel } from '@constants/theme';
+import { formatHora } from '@utils/fechas';
 import type { Clase } from '@app-types/index';
 
 const DISCIPLINA_COLORS: Record<string, string> = {
@@ -87,7 +88,7 @@ export default function AgendaScreen() {
           </View>
 
           {/* Horario */}
-          <Text style={styles.horario}>{item.hora_inicio} — {item.hora_fin}</Text>
+          <Text style={styles.horario}>{formatHora(item.hora_inicio)} — {formatHora(item.hora_fin)}</Text>
           <Text style={styles.fecha}>{formatFecha(item.fecha)}</Text>
 
           {/* Inscriptos + barra */}

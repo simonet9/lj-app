@@ -50,8 +50,7 @@ export function useClases(): UseClasesResult {
     try {
       const { data, error: queryError } = await supabase
         .from('clases')
-        .select('*, gestor:usuarios(nombre, apellido)')
-        .neq('estado', 'suspendida')      // RN: no mostrar suspendidas
+        .select('*, gestor:usuarios(id)')
         .gte('fecha', fechaHoy())         // RN: solo desde hoy
         .order('fecha', { ascending: true })
         .order('hora_inicio', { ascending: true });

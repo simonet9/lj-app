@@ -46,31 +46,19 @@ describe('calcularSena', () => {
 
 describe('calcularHoraFin', () => {
   it('18:00 + 60 min → 19:00', () => {
-    expect(calcularHoraFin('18:00', 60)).toBe('19:00');
-  });
-
-  it('17:30 + 90 min → 19:00', () => {
-    expect(calcularHoraFin('17:30', 90)).toBe('19:00');
-  });
-
-  it('23:00 + 90 min → 00:30 (overflow medianoche)', () => {
-    expect(calcularHoraFin('23:00', 90)).toBe('00:30');
+    expect(calcularHoraFin('18:00')).toBe('19:00');
   });
 
   it('22:30 + 60 min → 23:30', () => {
-    expect(calcularHoraFin('22:30', 60)).toBe('23:30');
+    expect(calcularHoraFin('22:30')).toBe('23:30');
   });
 
   it('23:30 + 60 min → 00:30 (overflow)', () => {
-    expect(calcularHoraFin('23:30', 60)).toBe('00:30');
-  });
-
-  it('17:00 + 30 min → 17:30', () => {
-    expect(calcularHoraFin('17:00', 30)).toBe('17:30');
+    expect(calcularHoraFin('23:30')).toBe('00:30');
   });
 
   it('padea horas con cero cuando es menor de 10', () => {
-    expect(calcularHoraFin('07:00', 60)).toBe('08:00');
+    expect(calcularHoraFin('07:00')).toBe('08:00');
   });
 });
 

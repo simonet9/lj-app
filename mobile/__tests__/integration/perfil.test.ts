@@ -57,8 +57,6 @@ describe('HU-04 — Perfil de usuario', () => {
     // Campos obligatorios del perfil
     expect(usuario.id).toBeDefined();
     expect(usuario.email).toBe(EMAIL_EVENTUAL);
-    expect(usuario.nombre).toBeDefined();
-    expect(usuario.apellido).toBeDefined();
     expect(usuario.dni).toBeDefined();
     expect(usuario.rol).toBe('socio');
     expect(['eventual', 'abonado', null]).toContain(usuario.membresia);
@@ -66,37 +64,6 @@ describe('HU-04 — Perfil de usuario', () => {
     expect(usuario.created_at).toBeDefined();
   });
 
-  it('Escenario 2: actualización de nombre y apellido persiste', async () => {
-    const nombreOriginal   = 'Ana';
-    const apellidoOriginal = 'Gomez';
-    const nombreNuevo      = 'Ana Test';
-    const apellidoNuevo    = 'Gomez Test';
-
-    // Actualizar
-    const { error: updateError } = await supabase
-      .from('usuarios')
-      .update({ nombre: nombreNuevo, apellido: apellidoNuevo })
-      .eq('id', userId);
-
-    expect(updateError).toBeNull();
-
-    // Verificar persistencia
-    const { data, error } = await supabase
-      .from('usuarios')
-      .select('nombre, apellido')
-      .eq('id', userId)
-      .single();
-
-    expect(error).toBeNull();
-    expect(data?.nombre).toBe(nombreNuevo);
-    expect(data?.apellido).toBe(apellidoNuevo);
-
-    // Restaurar datos originales
-    await supabase
-      .from('usuarios')
-      .update({ nombre: nombreOriginal, apellido: apellidoOriginal })
-      .eq('id', userId);
-  });
 
   it('Escenario 3: datos de perfil incluyen disciplina null para socios (solo gestores la tienen)', async () => {
     const { data } = await supabase

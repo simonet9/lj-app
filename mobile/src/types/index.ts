@@ -12,8 +12,6 @@ export interface Usuario {
   id: string;
   email: string;
   dni: string;
-  nombre: string;
-  apellido: string;
   rol: UserRole;
   membresia: MembresiaType | null;
   creditos: number;
@@ -33,7 +31,6 @@ export interface Clase {
   cupo_disponible: number;
   estado: EstadoClase;
   gestor_id: string;
-  gestor?: Pick<Usuario, 'nombre' | 'apellido'>;
   created_at: string;
 }
 
@@ -48,7 +45,7 @@ export interface Reserva {
   seña_pagada: number | null;   // solo socios eventuales
   created_at: string;
   clase?: Clase;
-  socio?: Pick<Usuario, 'nombre' | 'apellido' | 'dni'>;
+  socio?: Pick<Usuario, 'dni'>;
 }
 
 // ─── Lista de espera ──────────────────────────────────────────────────────────
@@ -123,8 +120,6 @@ export interface SignUpData {
   email: string;
   password: string;
   dni: string;
-  nombre: string;
-  apellido: string;
 }
 
 // ─── Navegación ───────────────────────────────────────────────────────────────

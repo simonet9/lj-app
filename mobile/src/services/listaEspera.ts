@@ -46,40 +46,26 @@ function mapearError(error: any): InscripcionFailure {
  *
  * Lanza un InscripcionFailure si falla (unique_violation u otro error).
  */
-export async function inscribirseEnLista(
-  socioId: string,
-  claseId: string,
-): Promise<InscripcionResult> {
-  // ── Paso 1: obtener la posición máxima actual ─────────────────────────────
-  const { data: maxData } = await supabase
+export async function inscribirseEnLista(socioId: string, claseId: string) {
+  const { data: maxPos } = await supabase
     .from('lista_espera')
     .select('posicion')
     .eq('clase_id', claseId)
     .order('posicion', { ascending: false })
     .limit(1)
-    .maybeSingle(); // no lanza error si no hay filas (lista vacía)
+    .maybeSingle()
 
-  const siguientePosicion = (maxData?.posicion ?? 0) + 1;
+  const nuevaPosicion = (maxPos?.posicion ?? 0) + 1
 
-  // ── Paso 2: insertar entrada ──────────────────────────────────────────────
   const { data, error } = await supabase
     .from('lista_espera')
-    .insert({
-      socio_id: socioId,
-      clase_id: claseId,
-      posicion: siguientePosicion,
-    })
+    .insert({ socio_id: socioId, clase_id: claseId, posicion: nuevaPosicion })
     .select()
-    .single();
+    .single()
 
-  if (error) {
-    throw mapearError(error);
-  }
-
-  return {
-    entrada: data as ListaEspera,
-    posicion: siguientePosicion,
-  };
+  if (error?.code === '23505') throw new Error('Ya estás en la lista de espera de esta clase')
+  if (error) throw new Error('No se pudo procesar la solicitud. Intentá de nuevo.')
+  return data
 }
 
 /**

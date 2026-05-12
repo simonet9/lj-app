@@ -37,7 +37,7 @@ async function fetchClases(
 ): Promise<Clase[]> {
   let query = client
     .from('clases')
-    .select('*, gestor:usuarios(nombre, apellido)')
+    .select('*, gestor:usuarios(id)')
     .neq('estado', 'suspendida')
     .order('fecha', { ascending: true })
     .order('hora_inicio', { ascending: true });
