@@ -47,25 +47,26 @@ function mapearError(error: any): InscripcionFailure {
  * Lanza un InscripcionFailure si falla (unique_violation u otro error).
  */
 export async function inscribirseEnLista(socioId: string, claseId: string) {
-  const { data: maxPos } = await supabase
-    .from('lista_espera')
-    .select('posicion')
-    .eq('clase_id', claseId)
-    .order('posicion', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  const { data, error } = await supabase.rpc('inscribirse_en_lista_espera', {
+    p_socio_id: socioId,
+    p_clase_id: claseId
+  })
 
-  const nuevaPosicion = (maxPos?.posicion ?? 0) + 1
+  if (error) {
+    console.error('[listaEspera] RPC error:', error.message)
+    throw new Error('No se pudo procesar la solicitud. Intentá de nuevo.')
+  }
 
-  const { data, error } = await supabase
-    .from('lista_espera')
-    .insert({ socio_id: socioId, clase_id: claseId, posicion: nuevaPosicion })
-    .select()
-    .single()
+  if (data?.error === 'already_inscribed') {
+    throw new Error('Ya estás en la lista de espera de esta clase')
+  }
+  
+  if (data?.error) {
+    console.error('[listaEspera] RPC business error:', data.error)
+    throw new Error('No se pudo procesar la solicitud. Intentá de nuevo.')
+  }
 
-  if (error?.code === '23505') throw new Error('Ya estás en la lista de espera de esta clase')
-  if (error) throw new Error('No se pudo procesar la solicitud. Intentá de nuevo.')
-  return data
+  return { ...data }
 }
 
 /**

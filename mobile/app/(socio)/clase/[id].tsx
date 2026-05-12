@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, ActivityIndicator,
   TouchableOpacity, Alert,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@services/supabase';
@@ -32,54 +32,62 @@ export default function ClaseDetailScreen() {
   const insets = useSafeAreaInsets();
 
   // ── Estado de datos ───────────────────────────────────────────────────────
-  const [clase, setClase]               = useState<Clase | null>(null);
-  const [entradaLista, setEntradaLista] = useState<{posicion: number} | null>(null);
+  const [clase, setClase] = useState<Clase | null>(null);
+  const [entradaLista, setEntradaLista] = useState<{ posicion: number } | null>(null);
   const [tieneReserva, setTieneReserva] = useState(false);
-  const [loading, setLoading]           = useState(true);
+  const [loading, setLoading] = useState(true);
 
   // ── Estado de acciones ────────────────────────────────────────────────────
-  const [reservando, setReservando]     = useState(false);
+  const [reservando, setReservando] = useState(false);
   const [inscribiendo, setInscribiendo] = useState(false);
 
   // ── Carga inicial: clase + posición en lista de espera ────────────────────
-  useEffect(() => {
-    if (!id || !usuario) return;
+  useFocusEffect(
+    useCallback(() => {
+      if (!id || !usuario) return;
+      let isActive = true;
 
-    async function cargar() {
-      setLoading(true);
+      async function cargar() {
+        setLoading(true);
 
-      // Clase, lista y reserva
-      const [claseRes, listaRes, reservaRes] = await Promise.all([
-        supabase
-          .from('clases')
-          .select('*, gestor:usuarios(id)')
-          .eq('id', id)
-          .single(),
-        supabase
-          .from('lista_espera')
-          .select('posicion')
-          .eq('clase_id', id)
-          .eq('socio_id', usuario!.id)
-          .maybeSingle(),
-        supabase
-          .from('reservas')
-          .select('id')
-          .eq('clase_id', id)
-          .eq('socio_id', usuario!.id)
-          .eq('estado', 'confirmada')
-          .maybeSingle()
-      ]);
+        const [claseRes, listaRes, reservaRes] = await Promise.all([
+          supabase
+            .from('clases')
+            .select('*, gestor:usuarios(id)')
+            .eq('id', id)
+            .single(),
+          supabase
+            .from('lista_espera')
+            .select('posicion')
+            .eq('clase_id', id)
+            .eq('socio_id', usuario!.id)
+            .maybeSingle(),
+          supabase
+            .from('reservas')
+            .select('id')
+            .eq('clase_id', id)
+            .eq('socio_id', usuario!.id)
+            .eq('estado', 'confirmada')
+            .maybeSingle()
+        ]);
 
-      if (!claseRes.error && claseRes.data) {
-        setClase(claseRes.data as Clase);
+        if (!isActive) return;
+
+        if (!claseRes.error && claseRes.data) {
+          setClase(claseRes.data as Clase);
+        }
+        setEntradaLista(listaRes.data);
+        setTieneReserva(!!reservaRes.data);
+        setLoading(false);
       }
-      setEntradaLista(listaRes.data);
-      setTieneReserva(!!reservaRes.data);
-      setLoading(false);
-    }
 
-    cargar();
-  }, [id, usuario]);
+      cargar();
+
+      return () => {
+        isActive = false;
+      };
+    }, [id, usuario])
+  );
 
   // ── Acción: inscribirse en lista de espera ────────────────────────────────
   async function handleListaEspera() {
@@ -109,13 +117,13 @@ export default function ClaseDetailScreen() {
   // Bifurca el flujo por tipo de membersía del socio:
   //   abonado  → RPC con descuento de crédito (HU-08)
   //   eventual → verificar horario + navegar a pago mock (HU-09)
-  async function handleReservar() {
+  async function handleReservar(metodo: 'credito' | 'dinero' = 'credito') {
     if (!clase || !usuario) return;
 
     const esAbonado = usuario.membresia === 'abonado';
 
     // ── Flujo abonado (créditos) ─────────────────────────────────────────
-    if (esAbonado) {
+    if (esAbonado && metodo === 'credito') {
       if (usuario.creditos < 1) {
         Alert.alert(
           'Sin créditos',
@@ -127,20 +135,50 @@ export default function ClaseDetailScreen() {
 
       setReservando(true);
       try {
+        // Verificar conflicto de horario antes de consumir crédito
+        const hayConflicto = await verificarConflictoHorario(
+          usuario.id, clase.fecha, clase.hora_inicio,
+        );
+        if (hayConflicto) {
+          Alert.alert(
+            'Horario ocupado',
+            'Ya tenés una clase agendada en ese día y horario.',
+            [{ text: 'Entendido', style: 'cancel' }],
+          );
+          return;
+        }
+
+        // Validar si ya existe una reserva cancelada para evitar el error de BD
+        const { data: reservaPrevia } = await supabase
+          .from('reservas')
+          .select('estado')
+          .eq('socio_id', usuario.id)
+          .eq('clase_id', clase.id)
+          .maybeSingle();
+
+        if (reservaPrevia && reservaPrevia.estado === 'cancelada') {
+          Alert.alert(
+            'Reserva bloqueada por restricción antigua',
+            'Para poder volver a reservar una clase cancelada, debes ejecutar el script "010_fix_reserva_unica.sql" en tu base de datos Supabase. Esto borrará la restricción vieja.',
+            [{ text: 'Entendido' }]
+          );
+          return;
+        }
+
         const { creditosRestantes } = await reservarClaseAbonado(usuario.id, clase.id);
         await refreshUsuario();
         router.replace({
           pathname: '/(socio)/reserva-confirmada' as any,
           params: {
-            disciplina:        clase.disciplina,
-            fecha:             clase.fecha,
-            horaInicio:        clase.hora_inicio,
-            horaFin:           clase.hora_fin,
+            disciplina: clase.disciplina,
+            fecha: clase.fecha,
+            horaInicio: clase.hora_inicio,
+            horaFin: clase.hora_fin,
             creditosRestantes: String(creditosRestantes),
           },
         });
       } catch (err: any) {
-        const codigo: string  = err?.codigo  ?? '';
+        const codigo: string = err?.codigo ?? '';
         const mensaje: string = err?.mensaje ?? 'No se pudo procesar la reserva. Intentá de nuevo.';
         if (codigo === 'sin_cupo') {
           Alert.alert(
@@ -174,7 +212,24 @@ export default function ClaseDetailScreen() {
         Alert.alert(
           'Horario ocupado',
           'Ya tenés una clase agendada en ese día y horario.',
-          [{ text: 'Entendido' }],
+          [{ text: 'Entendido', style: 'cancel' }],
+        );
+        return;
+      }
+
+      // Validar si ya existe una reserva cancelada para evitar el error de BD en la pasarela
+      const { data: reservaPrevia } = await supabase
+        .from('reservas')
+        .select('estado')
+        .eq('socio_id', usuario.id)
+        .eq('clase_id', clase.id)
+        .maybeSingle();
+
+      if (reservaPrevia && reservaPrevia.estado === 'cancelada') {
+        Alert.alert(
+          'Reserva bloqueada por restricción antigua',
+          'Para poder volver a reservar una clase cancelada, debes ejecutar el script "010_fix_reserva_unica.sql" en tu base de datos Supabase. Esto borrará la restricción vieja.',
+          [{ text: 'Entendido' }]
         );
         return;
       }
@@ -186,14 +241,15 @@ export default function ClaseDetailScreen() {
       router.push({
         pathname: '/(socio)/pago-mock' as any,
         params: {
-          claseId:    clase.id,
-          socioId:    usuario.id,
+          claseId: clase.id,
+          socioId: usuario.id,
           disciplina: clase.disciplina,
-          fecha:      clase.fecha,
+          fecha: clase.fecha,
           horaInicio: clase.hora_inicio,
-          horaFin:    clase.hora_fin,
-          monto:      String(sena),
+          horaFin: clase.hora_fin,
+          monto: String(sena),
           descripcion: `Reserva de clase de ${DisciplinaLabel[clase.disciplina]} — Seña 50%`,
+          origen: esAbonado ? 'abonado' : 'eventual',
         },
       });
     } finally {
@@ -223,12 +279,12 @@ export default function ClaseDetailScreen() {
   }
 
   // ── Variables derivadas ───────────────────────────────────────────────────
-  const color      = DISCIPLINA_COLORS[clase.disciplina] ?? Colors.primary;
-  const emoji      = DISCIPLINA_EMOJI[clase.disciplina] ?? '🏅';
-  const completa   = clase.estado === 'completa' || clase.cupo_disponible === 0;
+  const color = DISCIPLINA_COLORS[clase.disciplina] ?? Colors.primary;
+  const emoji = DISCIPLINA_EMOJI[clase.disciplina] ?? '🏅';
+  const completa = clase.estado === 'completa' || clase.cupo_disponible === 0;
   const suspendida = clase.estado === 'suspendida';
-  const yaEnLista  = entradaLista !== null;
-  const ocupacion  = clase.cupo_maximo > 0
+  const yaEnLista = entradaLista !== null;
+  const ocupacion = clase.cupo_maximo > 0
     ? Math.round(((clase.cupo_maximo - clase.cupo_disponible) / clase.cupo_maximo) * 100)
     : 0;
 
@@ -239,12 +295,13 @@ export default function ClaseDetailScreen() {
    *  3. completa + sin lista → botón lista de espera (amarillo)
    *  4. disponible          → botón reservar (verde)
    */
-  type CtaMode = 'reservar' | 'lista_espera' | 'en_lista' | 'suspendida' | 'ninguno';
+  type CtaMode = 'ya_inscripto' | 'reservar' | 'lista_espera' | 'en_lista' | 'suspendida' | 'ninguno';
   function getCtaMode(): CtaMode {
-    if (suspendida)                    return 'suspendida';
-    if (completa && yaEnLista)         return 'en_lista';
-    if (completa && !yaEnLista)        return 'lista_espera';
-    if (!completa && !tieneReserva)    return 'reservar';
+    if (tieneReserva) return 'ya_inscripto';
+    if (suspendida) return 'suspendida';
+    if (completa && yaEnLista) return 'en_lista';
+    if (completa && !yaEnLista) return 'lista_espera';
+    if (!completa && !tieneReserva) return 'reservar';
     return 'ninguno';
   }
   const ctaMode = getCtaMode();
@@ -345,6 +402,15 @@ export default function ClaseDetailScreen() {
       {/* ── Sticky CTA — renderizado condicional según ctaMode ──────────── */}
       <View style={[styles.stickyBar, { paddingBottom: insets.bottom + Spacing.sm }]}>
 
+        {ctaMode === 'ya_inscripto' && (
+          <View style={styles.ctaYaInscripto}>
+            <Ionicons name="checkmark-circle" size={20} color={Colors.info} />
+            <Text style={styles.ctaYaInscriptoText}>
+              Ya estás inscripto en esta clase
+            </Text>
+          </View>
+        )}
+
         {ctaMode === 'suspendida' && (
           /* Estado 4: clase suspendida — sin botón */
           <View style={styles.ctaInfo}>
@@ -386,23 +452,67 @@ export default function ClaseDetailScreen() {
 
         {ctaMode === 'reservar' && (
           /* Estado 1: clase disponible */
-          <TouchableOpacity
-            style={[styles.ctaButton, reservando && styles.ctaButtonLoading]}
-            onPress={handleReservar}
-            activeOpacity={0.85}
-            disabled={reservando}
-            accessibilityLabel="Reservar clase"
-            accessibilityRole="button"
-          >
-            {reservando ? (
-              <ActivityIndicator color={Colors.textInverse} />
-            ) : (
+          <View style={{ gap: Spacing.sm }}>
+            {usuario?.membresia === 'abonado' ? (
               <>
-                <Ionicons name="checkmark-circle-outline" size={20} color={Colors.textInverse} />
-                <Text style={styles.ctaText}>Reservar clase</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.ctaButton,
+                    reservando && styles.ctaButtonLoading,
+                    usuario.creditos === 0 && { opacity: 0.5 }
+                  ]}
+                  onPress={() => handleReservar('credito')}
+                  activeOpacity={0.85}
+                  disabled={reservando || usuario.creditos === 0}
+                  accessibilityLabel="Reservar con crédito"
+                  accessibilityRole="button"
+                >
+                  {reservando ? (
+                    <ActivityIndicator color={Colors.textInverse} />
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark-circle-outline" size={20} color={Colors.textInverse} />
+                      <Text style={styles.ctaText}>Reservar con crédito (tenés {usuario.creditos})</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+                {usuario.creditos === 0 && (
+                  <Text style={{ ...Typography.bodySmall, color: Colors.danger, textAlign: 'center' }}>
+                    No tenés créditos disponibles
+                  </Text>
+                )}
+                <TouchableOpacity
+                  style={[styles.ctaButton, { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border }]}
+                  onPress={() => handleReservar('dinero')}
+                  activeOpacity={0.85}
+                  disabled={reservando}
+                  accessibilityLabel="Pagar con dinero"
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="cash-outline" size={20} color={Colors.textPrimary} />
+                  <Text style={[styles.ctaText, { color: Colors.textPrimary }]}>Pagar con dinero</Text>
+                </TouchableOpacity>
               </>
+            ) : (
+              <TouchableOpacity
+                style={[styles.ctaButton, reservando && styles.ctaButtonLoading]}
+                onPress={() => handleReservar('dinero')}
+                activeOpacity={0.85}
+                disabled={reservando}
+                accessibilityLabel="Reservar clase"
+                accessibilityRole="button"
+              >
+                {reservando ? (
+                  <ActivityIndicator color={Colors.textInverse} />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-circle-outline" size={20} color={Colors.textInverse} />
+                    <Text style={styles.ctaText}>Reservar clase</Text>
+                  </>
+                )}
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
+          </View>
         )}
 
       </View>
@@ -559,4 +669,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm, paddingVertical: 16,
   },
   ctaInfoText: { ...Typography.body, color: Colors.textMuted, fontWeight: '500' },
+  ctaYaInscripto: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: Spacing.sm, paddingVertical: 16,
+    backgroundColor: Colors.infoLight, borderRadius: Radius.lg,
+  },
+  ctaYaInscriptoText: { ...Typography.body, color: Colors.info, fontWeight: '600' },
 });

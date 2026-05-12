@@ -112,28 +112,14 @@ export async function previsualizarCancelacion(
  *
  * Lanza CancelacionError si algo falla.
  */
-export async function cancelarReservaAbonado(
-  reservaId: string,
-  socioId:   string,
-): Promise<ResultadoCancelacion> {
-  const { data, error } = await supabase.rpc('cancelar_reserva_abonado', {
-    p_reserva_id: reservaId,
-    p_socio_id:   socioId,
-  });
+export async function cancelarReservaAbonado(reservaId: string, socioId: string) {
+  const { data, error } = await supabase
+    .rpc('cancelar_reserva_abonado', {
+      p_reserva_id: reservaId,
+      p_socio_id:   socioId
+    })
 
-  if (error) {
-    console.error('[cancelaciones] RPC error:', error.message);
-    throw { codigo: 'rpc_error', mensaje: 'No se pudo procesar la cancelación. Intentá de nuevo.' } as CancelacionError;
-  }
-
-  if (data?.error) {
-    throw { codigo: data.error, mensaje: 'No se encontró la reserva o ya fue cancelada.' } as CancelacionError;
-  }
-
-  return {
-    devuelveCredito:  data.devuelve_credito  as boolean,
-    perdioDescuento:  data.perdio_descuento  as boolean,
-    cancelacionesMes: data.cancelaciones_mes as number,
-    mensaje:          data.mensaje           as string,
-  };
+  if (error) throw new Error('No se pudo procesar la cancelación. Intentá de nuevo.')
+  if (data.error) throw new Error(data.error)
+  return data  // { success, devuelve_credito, cancelaciones_mes, mensaje }
 }

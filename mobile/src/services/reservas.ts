@@ -126,18 +126,53 @@ export async function verificarConflictoHorario(
   fecha: string,
   horaInicio: string,
 ): Promise<boolean> {
-  const { data } = await supabase
-    .from('reservas')
-    .select('*, clase:clases(fecha, hora_inicio, hora_fin)')
-    .eq('socio_id', socioId)
-    .eq('estado', 'confirmada');
+  try {
+    // 1. Obtener todas las reservas confirmadas del socio
+    const { data: misReservas, error: err1 } = await supabase
+      .from('reservas')
+      .select('clase_id')
+      .eq('socio_id', socioId)
+      .eq('estado', 'confirmada');
 
-  if (!data) return false;
+    if (err1) {
+      console.error('[reservas] Error al obtener mis reservas para conflicto:', err1);
+      return false;
+    }
+    if (!misReservas || misReservas.length === 0) return false;
 
-  return data.some((r: any) => {
-    const c = r.clase;
-    return c && c.fecha === fecha && c.hora_inicio === horaInicio;
-  });
+    const claseIds = misReservas.map((r: any) => r.clase_id);
+
+    // 2. Obtener los detalles de esas clases
+    const { data: misClases, error: err2 } = await supabase
+      .from('clases')
+      .select('id, fecha, hora_inicio')
+      .in('id', claseIds);
+
+    if (err2) {
+      console.error('[reservas] Error al obtener mis clases para conflicto:', err2);
+      return false;
+    }
+    if (!misClases || misClases.length === 0) return false;
+
+    // 3. Comprobar si hay alguna en la misma fecha y hora
+    const hayConflicto = misClases.some((c: any) => {
+      if (!c.fecha || !c.hora_inicio) return false;
+      
+      const horaBD = c.hora_inicio.slice(0, 5);
+      const horaComparar = horaInicio?.slice(0, 5);
+      
+      return c.fecha === fecha && horaBD === horaComparar;
+    });
+
+    if (!hayConflicto) {
+      console.log(`[reservas] Evaluadas ${misClases.length} clases activas. No hay conflicto.`);
+    }
+
+    return hayConflicto;
+  } catch (error) {
+    console.error('[reservas] Error inesperado en verificarConflictoHorario:', error);
+    return false;
+  }
 }
 
 /**
@@ -176,8 +211,8 @@ export async function reservarClaseEventual(
     .single();
 
   if (error) {
-    console.error('[reservas] Error insertando reserva eventual:', error.message);
     if (error.code === '23505') throw buildError('ya_reservada');
+    console.error('[reservas] Error insertando reserva eventual:', error.message);
     throw buildError('rpc_error');
   }
 

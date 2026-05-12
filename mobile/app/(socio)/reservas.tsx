@@ -10,18 +10,15 @@ import { useAuth } from '@context/AuthContext';
 import { Colors, Typography, Spacing, Radius, DisciplinaLabel, NivelLabel } from '@constants/theme';
 import { EmptyState, ConfirmModal } from '@components/common';
 import { useReservas } from '@hooks/useReservas';
-import {
-  previsualizarCancelacion, cancelarReservaAbonado,
-  buildModalMessage, type PreviewCancelacion,
-} from '@services/cancelaciones';
 import type { Reserva } from '@app-types/index';
+import { cancelarReservaAbonado } from '@/services/cancelaciones';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const DISCIPLINA_COLORS: Record<string, string> = {
   futbol5: Colors.futbol5,
-  padel:   Colors.padel,
-  voley:   Colors.voley,
+  padel: Colors.padel,
+  voley: Colors.voley,
   basquet: Colors.basquet,
 };
 
@@ -52,8 +49,8 @@ function ReservaCard({ reserva, onCancelar, loadingCancelar = false }: ReservaCa
   const clase = reserva.clase as any;
   if (!clase) return null;
 
-  const color      = DISCIPLINA_COLORS[clase.disciplina] ?? Colors.primary;
-  const emoji      = DISCIPLINA_EMOJI[clase.disciplina] ?? '🏅';
+  const color = DISCIPLINA_COLORS[clase.disciplina] ?? Colors.primary;
+  const emoji = DISCIPLINA_EMOJI[clase.disciplina] ?? '🏅';
   const cancelable = clase.fecha >= fechaHoy();
 
   return (
@@ -127,40 +124,25 @@ function ReservaCard({ reserva, onCancelar, loadingCancelar = false }: ReservaCa
 
 export default function ReservasScreen() {
   const { usuario, refreshUsuario } = useAuth();
-  const insets      = useSafeAreaInsets();
+  const insets = useSafeAreaInsets();
 
   // ── Datos ─────────────────────────────────────────────────────────────────
   const { reservas, loading, refreshing, error, refresh } = useReservas(usuario?.id);
 
   // ── Estado del modal de cancelación ───────────────────────────────────────
-  // reservaACancelar: reserva seleccionada para cancelar
-  // preview: datos calculados por el RPC de previsualización (construye el mensaje)
-  // cargandoPreview: ID de la reserva cuyo botón está en estado loading (preflight)
-  // confirmando: true mientras se ejecuta el RPC de cancelación
   const [reservaACancelar, setReservaACancelar] = useState<Reserva | null>(null);
-  const [preview, setPreview]                   = useState<PreviewCancelacion | null>(null);
-  const [cargandoPreview, setCargandoPreview]   = useState<string | null>(null);
-  const [confirmando, setConfirmando]           = useState(false);
+  const [cargandoPreview, setCargandoPreview] = useState<string | null>(null);
+  const [confirmando, setConfirmando] = useState(false);
 
-  // ── Pre-flight: calcular escenario antes de abrir el modal ────────────────
+  // ── Abrir el modal ────────────────────────────────────────────────────────
   async function handleCancelar(reserva: Reserva) {
     if (!usuario) return;
-    setCargandoPreview(reserva.id);
-    try {
-      const prev = await previsualizarCancelacion(reserva.id, usuario.id);
-      setPreview(prev);
-      setReservaACancelar(reserva);
-    } catch {
-      Alert.alert('Error', 'No se pudo cargar la información de cancelación.');
-    } finally {
-      setCargandoPreview(null);
-    }
+    setReservaACancelar(reserva);
   }
 
   function handleCerrarModal() {
     if (confirmando) return;
     setReservaACancelar(null);
-    setPreview(null);
   }
 
   // ── Confirmar cancelación ──────────────────────────────────────────────────
@@ -169,15 +151,14 @@ export default function ReservasScreen() {
     setConfirmando(true);
     try {
       const resultado = await cancelarReservaAbonado(reservaACancelar.id, usuario.id);
-      if (resultado.devuelveCredito) await refreshUsuario();
-      handleCerrarModal();
+      // Mostrar el mensaje que retorna la función RPC
+      Alert.alert('Cancelación', resultado.mensaje, [{ text: 'OK' }])
+      // Refrescar la lista de reservas
       refresh();
-      Alert.alert(
-        resultado.devuelveCredito ? 'Reserva cancelada ✔' : 'Reserva cancelada',
-        resultado.mensaje,
-      );
-    } catch (err: any) {
-      Alert.alert('Error', err?.mensaje ?? 'No se pudo cancelar la reserva. Intentá de nuevo.');
+      if (resultado.devuelve_credito) await refreshUsuario();
+      handleCerrarModal();
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
     } finally {
       setConfirmando(false);
     }
@@ -268,21 +249,18 @@ export default function ReservasScreen() {
       )}
 
       {/* ── ConfirmModal: cancelación de reserva ───────────────────────── */}
-      {reservaACancelar && preview && (() => {
-        const { title, message, confirmColor } = buildModalMessage(preview);
-        return (
-          <ConfirmModal
-            visible
-            title={title}
-            message={message}
-            confirmText="Sí, cancelar"
-            confirmColor={confirmColor}
-            loading={confirmando}
-            onConfirm={handleConfirmarCancelacion}
-            onCancel={handleCerrarModal}
-          />
-        );
-      })()}
+      {reservaACancelar && (
+        <ConfirmModal
+          visible
+          title="¿Cancelar esta reserva?"
+          message="Se cancelará la reserva y el cupo quedará disponible para otros socios."
+          confirmText="Sí, cancelar"
+          confirmColor={Colors.danger}
+          loading={confirmando}
+          onConfirm={handleConfirmarCancelacion}
+          onCancel={handleCerrarModal}
+        />
+      )}
 
     </View>
   );

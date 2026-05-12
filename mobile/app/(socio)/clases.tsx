@@ -53,11 +53,11 @@ function emptyStateMessage(
 
 export default function ClasesScreen() {
   const { usuario } = useAuth();
-  const insets      = useSafeAreaInsets();
+  const insets = useSafeAreaInsets();
 
   // ── Estados de filtro ──────────────────────────────────────────────────────
   const [filtro, setFiltro] = useState<'todas' | Disciplina>('todas');
-  const [nivel, setNivel]   = useState<'todos' | NivelClase>('todos');
+  const [nivel, setNivel] = useState<'todos' | NivelClase>('todos');
 
   // ── Datos (una sola llamada a la red, sin dependencia de filtros) ──────────
   const { clases, loading, refreshing, error, refresh } = useClases();
@@ -66,7 +66,7 @@ export default function ClasesScreen() {
   const clasesFiltradas = useMemo(() => {
     return clases.filter(c => {
       const matchDisciplina = filtro === 'todas' || c.disciplina === filtro;
-      const matchNivel      = nivel  === 'todos'  || c.nivel      === nivel;
+      const matchNivel = nivel === 'todos' || c.nivel === nivel;
       return matchDisciplina && matchNivel;
     });
   }, [clases, filtro, nivel]);
@@ -82,7 +82,7 @@ export default function ClasesScreen() {
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.headerEyebrow}>
-              {getDayGreeting()}, {usuario?.nombre ?? 'socio'} 👋
+              {getDayGreeting()}, {'socio'} 👋
             </Text>
             <Text style={styles.title}>Clases disponibles</Text>
           </View>

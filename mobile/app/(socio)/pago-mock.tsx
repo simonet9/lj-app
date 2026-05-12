@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ActivityIndicator, ScrollView,
+  ActivityIndicator, ScrollView, Alert,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -45,6 +45,14 @@ export default function PagoMockScreen() {
   const insets  = useSafeAreaInsets();
   const [procesando, setProcesando] = useState(false);
   const [intentoFallido, setIntentoFallido] = useState(false);
+  const [listoParaPagar, setListoParaPagar] = useState(false);
+
+  // Prevención de "ghost clicks" en la web o doble taps al navegar
+  useEffect(() => {
+    setProcesando(false);
+    const timer = setTimeout(() => setListoParaPagar(true), 600);
+    return () => clearTimeout(timer);
+  }, []);
 
   const claseId    = params.claseId    ?? '';
   const socioId    = params.socioId    ?? '';
@@ -74,6 +82,11 @@ export default function PagoMockScreen() {
     if (!exitoso) {
       setProcesando(false);
       setIntentoFallido(true);
+      Alert.alert(
+        'Pago no procesado',
+        'El pago no pudo ser procesado. Por favor, intentá de nuevo.',
+        [{ text: 'Volver', onPress: () => router.back() }]
+      );
       return;
     }
 
@@ -98,6 +111,11 @@ export default function PagoMockScreen() {
       // (raro, pero posible si el estado cambió mientras el usuario estaba en esta pantalla)
       setProcesando(false);
       setIntentoFallido(true);
+      Alert.alert(
+        'No se pudo reservar',
+        err?.mensaje || 'Hubo un problema al procesar la reserva. La seña será devuelta.',
+        [{ text: 'Volver', onPress: () => router.back() }]
+      );
     }
   }
 
@@ -197,7 +215,7 @@ export default function PagoMockScreen() {
           style={[styles.ctaButton, procesando && styles.ctaButtonLoading]}
           onPress={handlePagar}
           activeOpacity={0.85}
-          disabled={procesando}
+          disabled={procesando || !listoParaPagar}
           accessibilityLabel="Confirmar pago"
           accessibilityRole="button"
         >
