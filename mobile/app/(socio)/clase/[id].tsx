@@ -35,6 +35,7 @@ export default function ClaseDetailScreen() {
   const [clase, setClase] = useState<Clase | null>(null);
   const [entradaLista, setEntradaLista] = useState<{ posicion: number } | null>(null);
   const [tieneReserva, setTieneReserva] = useState(false);
+  const [tieneConflicto, setTieneConflicto] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // ── Estado de acciones ────────────────────────────────────────────────────
@@ -73,11 +74,23 @@ export default function ClaseDetailScreen() {
 
         if (!isActive) return;
 
+        let conflicto = false;
+        if (claseRes.data && !reservaRes.data) {
+          conflicto = await verificarConflictoHorario(
+            usuario!.id,
+            claseRes.data.fecha,
+            claseRes.data.hora_inicio
+          );
+        }
+
+        if (!isActive) return;
+
         if (!claseRes.error && claseRes.data) {
           setClase(claseRes.data as Clase);
         }
         setEntradaLista(listaRes.data);
         setTieneReserva(!!reservaRes.data);
+        setTieneConflicto(conflicto);
         setLoading(false);
       }
 
@@ -295,10 +308,11 @@ export default function ClaseDetailScreen() {
    *  3. completa + sin lista → botón lista de espera (amarillo)
    *  4. disponible          → botón reservar (verde)
    */
-  type CtaMode = 'ya_inscripto' | 'reservar' | 'lista_espera' | 'en_lista' | 'suspendida' | 'ninguno';
+  type CtaMode = 'ya_inscripto' | 'reservar' | 'lista_espera' | 'en_lista' | 'suspendida' | 'conflicto' | 'ninguno';
   function getCtaMode(): CtaMode {
     if (tieneReserva) return 'ya_inscripto';
     if (suspendida) return 'suspendida';
+    if (tieneConflicto) return 'conflicto';
     if (completa && yaEnLista) return 'en_lista';
     if (completa && !yaEnLista) return 'lista_espera';
     if (!completa && !tieneReserva) return 'reservar';
@@ -407,6 +421,15 @@ export default function ClaseDetailScreen() {
             <Ionicons name="checkmark-circle" size={20} color={Colors.info} />
             <Text style={styles.ctaYaInscriptoText}>
               Ya estás inscripto en esta clase
+            </Text>
+          </View>
+        )}
+
+        {ctaMode === 'conflicto' && (
+          <View style={[styles.ctaYaInscripto, { backgroundColor: Colors.dangerLight }]}>
+            <Ionicons name="alert-circle" size={20} color={Colors.danger} />
+            <Text style={[styles.ctaYaInscriptoText, { color: Colors.danger, textAlign: 'center' }]}>
+              Ya tenés una clase agendada en este horario
             </Text>
           </View>
         )}

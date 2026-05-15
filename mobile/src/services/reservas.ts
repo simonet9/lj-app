@@ -198,23 +198,26 @@ export async function reservarClaseEventual(
   if (hayConflicto) throw buildError('conflicto_horario');
 
   // ── 2. Insertar reserva con seña ─────────────────────────────────────────
-  const { data, error } = await supabase
-    .from('reservas')
-    .insert({
-      socio_id:     socioId,
-      clase_id:     claseId,
-      estado:       'confirmada',
-      credito_usado: false,
-      seña_pagada:   senaPagada,
-    })
-    .select('id')
-    .single();
+  const { data, error } = await supabase.rpc('reservar_clase_eventual', {
+    p_socio_id: socioId,
+    p_clase_id: claseId,
+    p_sena_pagada: senaPagada,
+    p_fecha: fecha,
+    p_hora: horaInicio
+  });
 
   if (error) {
-    if (error.code === '23505') throw buildError('ya_reservada');
-    console.error('[reservas] Error insertando reserva eventual:', error.message);
+    console.error('[reservas] Error de red en reserva eventual:', error.message);
     throw buildError('rpc_error');
   }
 
-  return { reservaId: data.id as string, senaPagada };
+  if (data?.error) {
+    if (data.error === 'ya_reservada') throw buildError('ya_reservada');
+    if (data.error === 'sin_cupo') throw buildError('sin_cupo');
+    if (data.error === 'clase_no_encontrada') throw buildError('clase_no_encontrada');
+    console.error('[reservas] Error de negocio insertando reserva eventual:', data.error);
+    throw buildError('rpc_error');
+  }
+
+  return { reservaId: data.reserva_id as string, senaPagada };
 }

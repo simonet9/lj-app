@@ -25,12 +25,13 @@ function formatFecha(fecha: string): string {
 
 interface Props {
   clase: Clase;
+  yaInscripto?: boolean;
   onPress: () => void;
 }
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
-export function ClassCard({ clase, onPress }: Props) {
+export function ClassCard({ clase, yaInscripto, onPress }: Props) {
   const isCompleta      = clase.estado === 'completa' || clase.cupo_disponible === 0;
   const isSuspendida    = clase.estado === 'suspendida';
   const disciplineColor = disciplinaColor(clase.disciplina);
@@ -57,22 +58,31 @@ export function ClassCard({ clase, onPress }: Props) {
             </Text>
           </View>
 
-          {/* Badge de cupo: "X lugares" (verde) | "Completa" (rojo) | "Suspendida" (gris) */}
-          <View style={[
-            styles.cupoBadge,
-            { backgroundColor: isSuspendida ? Colors.border : (isCompleta ? Colors.dangerLight : Colors.successLight) },
-          ]}>
+          {/* Badge de cupo / Inscripto */}
+          {yaInscripto ? (
+            <View style={[styles.cupoBadge, { backgroundColor: Colors.infoLight }]}>
+              <Ionicons name="checkmark-circle" size={12} color={Colors.info} />
+              <Text style={[styles.cupoText, { color: Colors.info }]}>
+                Ya estás en esta clase
+              </Text>
+            </View>
+          ) : (
             <View style={[
-              styles.cupoDot,
-              { backgroundColor: isSuspendida ? Colors.textMuted : (isCompleta ? Colors.danger : Colors.success) },
-            ]} />
-            <Text style={[
-              styles.cupoText,
-              { color: isSuspendida ? Colors.textMuted : (isCompleta ? Colors.danger : Colors.success) },
+              styles.cupoBadge,
+              { backgroundColor: isSuspendida ? Colors.border : (isCompleta ? Colors.dangerLight : Colors.successLight) },
             ]}>
-              {isSuspendida ? 'Suspendida' : (isCompleta ? 'Completa' : `${clase.cupo_disponible} lugar${clase.cupo_disponible !== 1 ? 'es' : ''}`)}
-            </Text>
-          </View>
+              <View style={[
+                styles.cupoDot,
+                { backgroundColor: isSuspendida ? Colors.textMuted : (isCompleta ? Colors.danger : Colors.success) },
+              ]} />
+              <Text style={[
+                styles.cupoText,
+                { color: isSuspendida ? Colors.textMuted : (isCompleta ? Colors.danger : Colors.success) },
+              ]}>
+                {isSuspendida ? 'Suspendida' : (isCompleta ? 'Completa' : `${clase.cupo_disponible} lugar${clase.cupo_disponible !== 1 ? 'es' : ''}`)}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* ── Horario (Typography.h3) ────────────────────────────────────────── */}

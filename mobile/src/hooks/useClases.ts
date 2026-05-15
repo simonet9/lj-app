@@ -6,6 +6,7 @@ import type { Clase } from '@app-types/index';
 
 export interface UseClasesResult {
   clases: Clase[];
+  reservas: string[];
   loading: boolean;
   refreshing: boolean;
   error: string | null;
@@ -33,8 +34,9 @@ function fechaHoy(): string {
  *
  * No realiza polling — solo fetch al montar y al llamar refresh().
  */
-export function useClases(): UseClasesResult {
+export function useClases(usuarioId?: string): UseClasesResult {
   const [clases, setClases]         = useState<Clase[]>([]);
+  const [reservas, setReservas]     = useState<string[]>([]);
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError]           = useState<string | null>(null);
@@ -48,18 +50,35 @@ export function useClases(): UseClasesResult {
     setError(null);
 
     try {
-      const { data, error: queryError } = await supabase
+      const queryClases = supabase
         .from('clases')
         .select('*, gestor:usuarios(id)')
         .gte('fecha', fechaHoy())         // RN: solo desde hoy
         .order('fecha', { ascending: true })
         .order('hora_inicio', { ascending: true });
 
-      if (queryError) {
-        console.error('[useClases] Error fetching clases:', queryError.message);
+      let queryReservas = null;
+      if (usuarioId) {
+        queryReservas = supabase
+          .from('reservas')
+          .select('clase_id')
+          .eq('socio_id', usuarioId)
+          .eq('estado', 'confirmada');
+      }
+
+      const [resClases, resReservas] = await Promise.all([queryClases, queryReservas]);
+
+      if (resClases.error) {
+        console.error('[useClases] Error fetching clases:', resClases.error.message);
         setError('No se pudieron cargar las clases. Intentá de nuevo.');
       } else {
-        setClases((data ?? []) as Clase[]);
+        setClases((resClases.data ?? []) as Clase[]);
+      }
+
+      if (resReservas && !resReservas.error) {
+        setReservas(resReservas.data.map((r: any) => r.clase_id));
+      } else {
+        setReservas([]);
       }
     } catch (err: any) {
       console.error('[useClases] Exception:', err.message);
@@ -72,11 +91,11 @@ export function useClases(): UseClasesResult {
 
   useEffect(() => {
     fetchClases(false);
-  }, [fetchClases]);
+  }, [fetchClases, usuarioId]);
 
   function refresh() {
     fetchClases(true);
   }
 
-  return { clases, loading, refreshing, error, refresh };
+  return { clases, reservas, loading, refreshing, error, refresh };
 }

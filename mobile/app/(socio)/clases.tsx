@@ -60,7 +60,7 @@ export default function ClasesScreen() {
   const [nivel, setNivel] = useState<'todos' | NivelClase>('todos');
 
   // ── Datos (una sola llamada a la red, sin dependencia de filtros) ──────────
-  const { clases, loading, refreshing, error, refresh } = useClases();
+  const { clases, reservas, loading, refreshing, error, refresh } = useClases(usuario?.id);
 
   // ── Filtrado en cliente — O(n) derivado, sin efectos secundarios ───────────
   const clasesFiltradas = useMemo(() => {
@@ -128,6 +128,7 @@ export default function ClasesScreen() {
           renderItem={({ item }) => (
             <ClassCard
               clase={item}
+              yaInscripto={reservas.includes(item.id)}
               onPress={() =>
                 router.push({
                   pathname: '/(socio)/clase/[id]' as any,

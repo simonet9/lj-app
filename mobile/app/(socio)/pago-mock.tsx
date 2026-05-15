@@ -68,16 +68,13 @@ export default function PagoMockScreen() {
   const montoFormateado = formatPesos(monto);
   const valorTotal      = formatPesos(monto * 2);
 
-  async function handlePagar() {
+  async function handlePagar(exitoso: boolean) {
     if (!claseId || !socioId) return;
     setProcesando(true);
     setIntentoFallido(false);
 
     // Simular delay de procesamiento del gateway
     await new Promise(r => setTimeout(r, 1500));
-
-    // 80% de éxito / 20% de fallo (mock de Mercado Pago)
-    const exitoso = Math.random() < 0.8;
 
     if (!exitoso) {
       setProcesando(false);
@@ -210,27 +207,41 @@ export default function PagoMockScreen() {
           </View>
         )}
 
-        {/* ── Botón de pago ─────────────────────────────────────────────────── */}
-        <TouchableOpacity
-          style={[styles.ctaButton, procesando && styles.ctaButtonLoading]}
-          onPress={handlePagar}
-          activeOpacity={0.85}
-          disabled={procesando || !listoParaPagar}
-          accessibilityLabel="Confirmar pago"
-          accessibilityRole="button"
-        >
-          {procesando ? (
-            <>
-              <ActivityIndicator color={Colors.textInverse} />
-              <Text style={styles.ctaText}>Procesando pago…</Text>
-            </>
-          ) : (
-            <>
-              <Ionicons name="lock-closed" size={18} color={Colors.textInverse} />
-              <Text style={styles.ctaText}>Pagar {montoFormateado}</Text>
-            </>
-          )}
-        </TouchableOpacity>
+        {/* ── Botones de pago (Simulación) ──────────────────────────────────── */}
+        <View style={{ gap: Spacing.sm }}>
+          <TouchableOpacity
+            style={[styles.ctaButton, procesando && styles.ctaButtonLoading]}
+            onPress={() => handlePagar(true)}
+            activeOpacity={0.85}
+            disabled={procesando || !listoParaPagar}
+            accessibilityLabel="Simular pago exitoso"
+            accessibilityRole="button"
+          >
+            {procesando ? (
+              <>
+                <ActivityIndicator color={Colors.textInverse} />
+                <Text style={styles.ctaText}>Procesando pago…</Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="lock-closed" size={18} color={Colors.textInverse} />
+                <Text style={styles.ctaText}>Pago Exitoso ({montoFormateado})</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.ctaButton, { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border }, procesando && styles.ctaButtonLoading]}
+            onPress={() => handlePagar(false)}
+            activeOpacity={0.85}
+            disabled={procesando || !listoParaPagar}
+            accessibilityLabel="Simular pago fallido"
+            accessibilityRole="button"
+          >
+            <Ionicons name="close-circle-outline" size={18} color={Colors.textPrimary} />
+            <Text style={[styles.ctaText, { color: Colors.textPrimary }]}>Simular Pago Fallido</Text>
+          </TouchableOpacity>
+        </View>
 
         <Text style={styles.legalText}>
           Simulación de pago para el MVP. No se realizan transacciones reales.
