@@ -28,6 +28,24 @@
 | `credito_devuelto` | `bool` |  |
 | `perdio_descuento` | `bool` |  |
 | `created_at` | `timestamptz` |  |
+| `via_pago` | `text` |  |
+| `reembolso_pendiente` | `bool` |  |
+
+## Table `cancelaciones_mensuales`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `socio_id` | `uuid` |  |
+| `mes` | `int4` |  |
+| `anio` | `int4` |  |
+| `cancelaciones` | `int4` |  |
+| `devoluciones` | `int4` |  |
+| `pierde_descuento_next_mes` | `bool` |  |
+| `created_at` | `timestamptz` |  |
+| `updated_at` | `timestamptz` |  |
 
 ## Table `clases`
 
@@ -48,6 +66,20 @@
 | `motivo_suspension` | `text` |  Nullable |
 | `created_at` | `timestamptz` |  |
 | `updated_at` | `timestamptz` |  |
+
+## Table `compras_pack`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `socio_id` | `uuid` |  |
+| `pack_id` | `uuid` |  |
+| `monto_pagado` | `numeric` |  |
+| `pagado_at` | `timestamptz` |  |
+| `estado` | `text` |  |
+| `created_at` | `timestamptz` |  |
 
 ## Table `lista_espera`
 
@@ -78,6 +110,34 @@
 | `referencia_id` | `uuid` |  Nullable |
 | `created_at` | `timestamptz` |  |
 
+## Table `pack_clases`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `pack_id` | `uuid` |  |
+| `clase_id` | `uuid` |  |
+| `semana_numero` | `int4` |  |
+
+## Table `packs`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `disciplina` | `text` |  |
+| `nivel` | `text` |  |
+| `dia_semana` | `text` |  |
+| `hora_inicio` | `text` |  |
+| `hora_fin` | `text` |  |
+| `gestor_id` | `uuid` |  Nullable |
+| `precio` | `numeric` |  |
+| `activo` | `bool` |  |
+| `created_at` | `timestamptz` |  |
+
 ## Table `reservas`
 
 ### Columns
@@ -94,6 +154,20 @@
 | `created_at` | `timestamptz` |  |
 | `updated_at` | `timestamptz` |  |
 
+## Table `user_push_tokens`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `user_id` | `uuid` |  |
+| `push_token` | `text` |  |
+| `platform` | `text` |  |
+| `active` | `bool` |  |
+| `created_at` | `timestamptz` |  |
+| `updated_at` | `timestamptz` |  |
+
 ## Table `usuarios`
 
 ### Columns
@@ -104,7 +178,6 @@
 | `email` | `text` |  Unique |
 | `dni` | `text` |  Unique |
 | `rol` | `user_role` |  |
-| `membresia` | `membresia_type` |  Nullable |
 | `creditos` | `int4` |  |
 | `disciplina` | `disciplina` |  Nullable |
 | `created_at` | `timestamptz` |  |

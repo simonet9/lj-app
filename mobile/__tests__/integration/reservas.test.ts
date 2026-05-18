@@ -165,7 +165,7 @@ describe('HU-08 — Reserva socio abonado', () => {
     // Para este test, intentamos reservar con una cuenta sin créditos
     await supabase.auth.signOut();
 
-    // Re-login como eventual (ana.gomez — membresia eventual, 0 créditos)
+    // Re-login como eventual (ana.gomez — 0 créditos)
     const { data } = await supabase.auth.signInWithPassword({
       email: EMAIL_EVENTUAL,
       password: PASSWORD,

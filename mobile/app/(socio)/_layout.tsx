@@ -89,13 +89,13 @@ export default function SocioLayout() {
         }}
       />
       <Tabs.Screen
-        name="abono"
+        name="packs"
         options={{
-          title: 'Abono',
+          title: 'Packs',
           tabBarIcon: ({ color, focused }) => (
             <TabIcon
-              name="card-outline"
-              nameActive="card"
+              name="bag-outline"
+              nameActive="bag"
               color={color}
               focused={focused}
             />
@@ -131,6 +131,18 @@ export default function SocioLayout() {
       />
       <Tabs.Screen
         name="pago-mock"
+        options={{ href: null, tabBarStyle: { display: 'none' } }}
+      />
+      <Tabs.Screen
+        name="pago-packs"
+        options={{ href: null, tabBarStyle: { display: 'none' } }}
+      />
+      <Tabs.Screen
+        name="abono"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="test-notificaciones"
         options={{ href: null, tabBarStyle: { display: 'none' } }}
       />
     </Tabs>

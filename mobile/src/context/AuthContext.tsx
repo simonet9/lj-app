@@ -108,8 +108,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       id: authData.user.id,
       email: data.email,
       dni: data.dni,
+      nombre: data.nombre,
+      apellido: data.apellido,
       rol: 'socio',
-      membresia: 'eventual',
       creditos: 0,
     });
 

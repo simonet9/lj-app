@@ -211,22 +211,19 @@ describe('HU-02 — Login', () => {
     ).rejects.toThrow('Credenciales incorrectas');
   });
 
-  it('el perfil de usuario obtenido del login tiene rol y membresía correctos', async () => {
+  it('el perfil de usuario obtenido del login tiene rol correcto', async () => {
     const session = await signIn(EMAIL_EVENTUAL, PASSWORD_OK);
     expect(session).toBeDefined();
 
     // Verificar que el perfil en la tabla usuarios coincide
     const { data: perfil } = await supabase
       .from('usuarios')
-      .select('rol, membresia, creditos')
+      .select('rol, creditos')
       .eq('email', EMAIL_EVENTUAL)
       .single();
 
     expect(perfil).toBeDefined();
     expect(perfil!.rol).toBe('socio');
-    // ana.gomez es eventual según CLAUDE.md §11 (sin créditos)
-    // Nota: si el equipo la configuró como abonada, ajustar:
-    expect(['eventual', 'abonado']).toContain(perfil!.membresia);
   });
 });
 

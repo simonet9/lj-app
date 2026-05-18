@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useAuth } from '@context/AuthContext';
 import { Colors, Typography, Spacing, Radius } from '@constants/theme';
 
@@ -45,7 +46,8 @@ export default function PerfilScreen() {
   if (!usuario) return null;
 
   const iniciales = usuario.email.substring(0, 2).toUpperCase();
-  const esAbonado = usuario.membresia === 'abonado';
+  // HU-21: condicionar vista por créditos, no por membresía
+  const tieneCreditos = (usuario.creditos ?? 0) > 0;
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -56,21 +58,22 @@ export default function PerfilScreen() {
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{iniciales}</Text>
           </View>
-          {esAbonado && (
-            <View style={styles.abonadoBadge}>
-              <Ionicons name="star" size={10} color={Colors.textInverse} />
+          {tieneCreditos && (
+            <View style={styles.creditosBadgeAvatar}>
+              <Ionicons name="flash" size={10} color={Colors.textInverse} />
             </View>
           )}
         </View>
-        <Text style={styles.nombre}>{usuario.email.split('@')[0]}</Text>
+        <Text style={styles.nombre}>
+          {usuario.nombre && usuario.apellido
+            ? `${usuario.nombre} ${usuario.apellido}`
+            : usuario.email.split('@')[0]}
+        </Text>
         <Text style={styles.email}>{usuario.email}</Text>
-        <View style={styles.rolChip}>
-          <Text style={styles.rolText}>{esAbonado ? 'Socio Abonado' : 'Socio Eventual'}</Text>
-        </View>
       </View>
 
-      {/* Créditos (solo abonados) */}
-      {esAbonado && (
+      {/* Créditos — solo si tiene créditos disponibles (HU-21) */}
+      {tieneCreditos && (
         <View style={styles.creditosCard}>
           <View style={styles.creditosLeft}>
             <Ionicons name="flash" size={24} color={Colors.accent} />
@@ -88,11 +91,17 @@ export default function PerfilScreen() {
         </View>
       )}
 
-      {/* Info */}
+      {/* Datos personales */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>INFORMACIÓN</Text>
+        {usuario.nombre ? (
+          <InfoRow icon="person-outline" label="Nombre" value={usuario.nombre} />
+        ) : null}
+        {usuario.apellido ? (
+          <InfoRow icon="person-outline" label="Apellido" value={usuario.apellido} />
+        ) : null}
         <InfoRow icon="card-outline" label="DNI" value={usuario.dni} />
-        <InfoRow icon="people-outline" label="Membresía" value={esAbonado ? 'Abonado mensual' : 'Eventual'} last />
+        <InfoRow icon="mail-outline" label="Email" value={usuario.email} last />
       </View>
 
       {/* Cerrar sesión */}
@@ -113,6 +122,21 @@ export default function PerfilScreen() {
           </>
         )}
       </TouchableOpacity>
+
+      {/* Botón de debug — solo visible en desarrollo */}
+      {__DEV__ && (
+        <TouchableOpacity
+          style={styles.devBtn}
+          onPress={() => router.push('/(socio)/test-notificaciones' as any)}
+          activeOpacity={0.8}
+          accessibilityLabel="Abrir pantalla de prueba de notificaciones"
+          accessibilityRole="button"
+        >
+          <Ionicons name="flask-outline" size={16} color={Colors.textMuted} />
+          <Text style={styles.devBtnText}>Test de notificaciones</Text>
+          <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} style={{ marginLeft: 'auto' }} />
+        </TouchableOpacity>
+      )}
 
       <View style={{ height: 40 }} />
     </ScrollView>
@@ -136,7 +160,7 @@ const infoStyles = StyleSheet.create({
   rowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.border },
   iconWrap: { width: 30, height: 30, borderRadius: 8, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center' },
   label: { ...Typography.body, color: Colors.textSecondary, flex: 1 },
-  value: { ...Typography.body, color: Colors.textPrimary, fontWeight: '500' },
+  value: { ...Typography.body, color: Colors.textPrimary, fontWeight: '500', flexShrink: 1, textAlign: 'right' },
 });
 
 const styles = StyleSheet.create({
@@ -172,23 +196,17 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   avatarText: { fontSize: 32, fontWeight: '800', color: Colors.textInverse },
-  abonadoBadge: {
+  // Badge de rayo cuando tiene créditos
+  creditosBadgeAvatar: {
     position: 'absolute',
     bottom: 2, right: 2,
     width: 24, height: 24, borderRadius: 12,
-    backgroundColor: Colors.warning,
+    backgroundColor: Colors.accent,
     justifyContent: 'center', alignItems: 'center',
     borderWidth: 2, borderColor: Colors.primary,
   },
   nombre: { ...Typography.h2, color: Colors.textInverse, marginBottom: 4 },
   email: { ...Typography.body, color: 'rgba(255,255,255,0.55)', marginBottom: Spacing.md },
-  rolChip: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 5,
-  },
-  rolText: { ...Typography.label, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
   creditosCard: {
     margin: Spacing.md,
     backgroundColor: Colors.primary,
@@ -240,4 +258,19 @@ const styles = StyleSheet.create({
   },
   logoutBtnDisabled: { opacity: 0.6 },
   logoutText: { ...Typography.body, color: Colors.danger, fontWeight: '600' },
+  // Botón de debug — solo en __DEV__
+  devBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.md,
+    marginBottom: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderStyle: 'dashed',
+    backgroundColor: Colors.surface,
+  },
+  devBtnText: { ...Typography.caption, color: Colors.textMuted, fontWeight: '600', flex: 1 },
 });

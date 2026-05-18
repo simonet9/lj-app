@@ -5,9 +5,9 @@
  * HU-04: El socio puede ver y editar sus datos de perfil.
  *
  * Criterios de aceptación verificados:
- *  - Escenario 1: el perfil devuelve datos completos del socio (nombre, apellido, dni, email, rol, membresía)
+ *  - Escenario 1: el perfil devuelve datos completos del socio (dni, email, rol)
  *  - Escenario 2: actualización de nombre/apellido persiste correctamente
- *  - Escenario 3: campos protegidos (rol, membresia, creditos) no pueden editarse vía cliente
+ *  - Escenario 3: campos protegidos (rol, creditos) no pueden editarse vía cliente
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
@@ -59,7 +59,6 @@ describe('HU-04 — Perfil de usuario', () => {
     expect(usuario.email).toBe(EMAIL_EVENTUAL);
     expect(usuario.dni).toBeDefined();
     expect(usuario.rol).toBe('socio');
-    expect(['eventual', 'abonado', null]).toContain(usuario.membresia);
     expect(typeof usuario.creditos).toBe('number');
     expect(usuario.created_at).toBeDefined();
   });

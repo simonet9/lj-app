@@ -1,6 +1,5 @@
 // ─── Roles ────────────────────────────────────────────────────────────────────
 export type UserRole = 'socio' | 'gestor' | 'admin';
-export type MembresiaType = 'eventual' | 'abonado';
 
 // ─── Disciplinas ──────────────────────────────────────────────────────────────
 export type Disciplina = 'futbol5' | 'padel' | 'voley' | 'basquet';
@@ -12,8 +11,9 @@ export interface Usuario {
   id: string;
   email: string;
   dni: string;
+  nombre: string | null;
+  apellido: string | null;
   rol: UserRole;
-  membresia: MembresiaType | null;
   creditos: number;
   disciplina: Disciplina | null; // Solo para gestores
   created_at: string;
@@ -42,7 +42,9 @@ export interface Reserva {
   socio_id: string;
   clase_id: string;
   estado: EstadoReserva;
-  seña_pagada: number | null;   // solo socios eventuales
+  seña_pagada: number | null;   // solo si se pagó con dinero
+  credito_usado: boolean;        // true = reserva con crédito, false = con dinero
+  cancelada_at: string | null;
   created_at: string;
   clase?: Clase;
   socio?: Pick<Usuario, 'dni'>;
@@ -84,6 +86,36 @@ export interface Abono {
   created_at: string;
 }
 
+// ─── Packs ────────────────────────────────────────────────────────────────────
+export interface Pack {
+  pack_id: string;
+  disciplina: Disciplina;
+  nivel: NivelClase;
+  dia_semana: string;
+  hora_inicio: string;
+  hora_fin: string;
+  precio: number;
+  fechas: PackFecha[];   // 4 objetos con fecha + clase_id
+  cupo_minimo: number;
+  ya_comprado: boolean;
+  solapa_horarios: boolean;
+}
+
+export interface PackFecha {
+  clase_id: string;
+  fecha: string;         // ISO date
+  semana: number;        // 1–4
+  cupo: number;
+}
+
+export type EstadoCompraPack = 'activo' | 'cancelado';
+
+export interface CompraPackResult {
+  success: boolean;
+  compra_id: string;
+  reserva_ids: string[];
+}
+
 // ─── Métricas (admin) ─────────────────────────────────────────────────────────
 export interface MetricaOcupacion {
   disciplina: Disciplina;
@@ -120,6 +152,8 @@ export interface SignUpData {
   email: string;
   password: string;
   dni: string;
+  nombre: string;
+  apellido: string;
 }
 
 // ─── Navegación ───────────────────────────────────────────────────────────────

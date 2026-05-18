@@ -46,12 +46,15 @@ mobile/app/
 │   ├── login.tsx
 │   └── registro.tsx
 ├── (socio)/
-│   ├── _layout.tsx          ← Tabs: clases, reservas, abono, perfil
+│   ├── _layout.tsx          ← Tabs: clases, reservas, packs, perfil
 │   ├── clases.tsx
-│   ├── clase/[id].tsx       ← Stack modal sobre las tabs
+│   ├── clase/[id].tsx       ← Detalle con CTA unificado HU-26+47
 │   ├── reservas.tsx
-│   ├── abono.tsx
-│   └── perfil.tsx
+│   ├── packs.tsx            ← Catálogo de packs HU-48 ✨
+│   ├── pago-packs.tsx       ← Checkout de pack HU-25 ✨
+│   ├── pago-mock.tsx        ← Pago individual
+│   ├── reserva-confirmada.tsx
+│   └── perfil.tsx           ← Simplificado HU-21 ✨
 ├── (gestor)/
 │   ├── _layout.tsx          ← Tabs: agenda, crear-clase, perfil
 │   ├── agenda.tsx
@@ -88,13 +91,14 @@ admin   → router.replace('/(admin)/metricas')
 1. **Horario operativo:** 17:00 a 00:00. Ninguna clase puede crearse fuera de esta franja.
 2. **Disciplinas válidas:** `futbol5` · `padel` · `voley` · `basquet` (exactamente estos 4 valores, lowercase, sin tildes).
 3. **Niveles válidos:** `principiante` · `intermedio` · `avanzado`.
-4. **Socio abonado:** Paga mensual. Usa créditos (1 crédito = 1 reserva).
-5. **Socio eventual:** Paga seña del 50% vía Mercado Pago (mock) por cada reserva.
-6. **Cancelación abonado:** Devuelve crédito si anticipación > 48hs Y < 3 cancelaciones en el mes.
-7. **Cancelación eventual:** Devuelve seña si anticipación > 24hs.
-8. **Lista de espera:** Orden FIFO. Sin cupo máximo. Ventana de 15 min para reconfirmar al quedar vacante.
-9. **Abono mensual:** Compra habilitada entre días 1 y 10 del mes. Otorga 4 créditos con 20% descuento.
-10. **Inasistencia:** Se marca automáticamente si no registra QR en la ventana de tolerancia → pérdida de membresía en abonado.
+4. **Créditos:** Cualquier socio puede tener créditos (comprados via pack o abono). 1 crédito = 1 reserva.
+5. **Reserva individual:** Siempre ofrece dos opciones: 'Reservar con crédito' (descuenta 1 crédito) o 'Pagar con dinero' (seña 50% via Mercado Pago mock).
+6. **Cancelación crédito:** Devuelve crédito si anticipación >48hs Y <3 devoluciones en el mes.
+7. **Cancelación dinero:** Inicia reembolso (flag `reembolso_pendiente`) si anticipación >24hs.
+8. **Penalización mensual:** Si se superan 3 cancelaciones en el mes → `pierde_descuento_next_mes = true` en `cancelaciones_mensuales`.
+9. **Lista de espera:** Orden FIFO. Sin cupo máximo. Ventana de 15 min para reconfirmar al quedar vacante.
+10. **Packs:** Agrupan 4 clases de igual disciplina/nivel/horario en 4 semanas. Triple filtro: cupo en 4 fechas + sin solapamiento + no comprado previamente. Compra atómica reserva las 4 clases en 1 TX.
+11. **Inasistencia:** Se marca automáticamente si no registra QR en la ventana de tolerancia.
 
 ---
 
@@ -105,7 +109,6 @@ admin   → router.replace('/(admin)/metricas')
 ### Tipos de unión (literales exactos)
 ```ts
 type UserRole        = 'socio' | 'gestor' | 'admin';
-type MembresiaType   = 'eventual' | 'abonado';
 type Disciplina      = 'futbol5' | 'padel' | 'voley' | 'basquet';
 type NivelClase      = 'principiante' | 'intermedio' | 'avanzado';
 type EstadoClase     = 'disponible' | 'completa' | 'suspendida';
@@ -294,24 +297,27 @@ const result: any = await fetch(...);
 
 | Email | Contraseña | Rol | Detalle |
 |---|---|---|---|
-| ana.gomez@gmail.com | Club2026! | socio abonado | 3 créditos disponibles |
-| carlos.ruiz@gmail.com | Club2026! | socio eventual | — |
+| ana.gomez@gmail.com | Club2026! | socio | 3 créditos disponibles |
+| carlos.ruiz@gmail.com | Club2026! | socio | 0 créditos |
 | laura.garcia@gmail.com | Club2026! | gestor | Disciplina: pádel |
 | miguel.lopez@gmail.com | Club2026! | gestor | Disciplina: fútbol5 |
 | admin@centrolj.com | Admin2026! | admin | — |
 
 ---
 
-## 12. ESTADO DEL PROYECTO (Abril 2026)
+## 12. ESTADO DEL PROYECTO (Mayo 2026 — Sprint 2)
 
 | Módulo | Estado |
 |---|---|
 | Auth (login, registro, sesión) | ✅ Completo |
 | Navegación por roles | ✅ Completo |
 | Clases — lista con filtros | ✅ Completo |
-| Clases — detalle | ✅ Completo (mínimo) |
-| Reservas — lista | 🔶 Stub |
-| Abono | 🔶 Stub |
+| Clases — detalle + CTA unificado (HU-47) | ✅ Sprint 2 |
+| Reservas — motor unificado crédito/dinero (HU-26) | ✅ Sprint 2 |
+| Cancelaciones — lógica mixta crédito+dinero (HU-29) | ✅ Sprint 2 |
+| Perfil — simplificado por créditos (HU-21) | ✅ Sprint 2 |
+| Packs — catálogo con triple filtro (HU-48) | ✅ Sprint 2 |
+| Packs — checkout atómico (HU-25) | ✅ Sprint 2 |
 | Gestor — agenda | 🔶 Stub |
 | Gestor — crear clase | 🔶 Stub |
 | Admin — métricas | 🔶 Datos hardcodeados |

@@ -11,6 +11,8 @@ import { Colors, Typography, Spacing, Radius } from '@constants/theme';
 
 // ─── Tipos de errores por campo ───────────────────────────────────────────────
 interface FormErrors {
+  nombre?: string;
+  apellido?: string;
   dni?: string;
   email?: string;
   password?: string;
@@ -24,10 +26,15 @@ const EMAIL_REGEX  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // ─── Validación completa del formulario ───────────────────────────────────────
 function validarFormulario(form: {
+  nombre: string;
+  apellido: string;
   dni: string;
   email: string; password: string; confirmPassword: string;
 }): FormErrors {
   const errors: FormErrors = {};
+
+  if (!form.nombre.trim()) errors.nombre = 'El nombre es obligatorio.';
+  if (!form.apellido.trim()) errors.apellido = 'El apellido es obligatorio.';
 
   if (!form.dni.trim()) {
     errors.dni = 'El DNI es obligatorio.';
@@ -61,7 +68,7 @@ export default function RegistroScreen() {
   const { signUp } = useAuth();
 
   const [form, setForm] = useState({
-    email: '', dni: '', password: '', confirmPassword: '',
+    nombre: '', apellido: '', email: '', dni: '', password: '', confirmPassword: '',
   });
   const [errors, setErrors]     = useState<FormErrors>({});
   const [showPass, setShowPass] = useState(false);
@@ -70,11 +77,11 @@ export default function RegistroScreen() {
 
   function setField(key: keyof typeof form, value: string) {
     setForm(prev => ({ ...prev, [key]: value }));
-    // Limpiar el error de ese campo al empezar a escribir
-    if (errors[key as keyof FormErrors]) {
-      setErrors(prev => ({ ...prev, [key]: undefined }));
-    }
+    // Nota: no limpiamos errors aquí para evitar doble re-render que
+    // en Android roba el foco del TextInput activo (bug de ciclo automático).
+    // Los errores se limpian al volver a intentar el submit.
   }
+
 
   async function handleRegistro() {
     // ── Validar formulario localmente ─────────────────────────────────────────
@@ -92,6 +99,8 @@ export default function RegistroScreen() {
         email:    form.email.trim().toLowerCase(),
         password: form.password,
         dni:      form.dni.trim(),
+        nombre:   form.nombre.trim(),
+        apellido: form.apellido.trim(),
       });
       // ✅ El redirect a /(socio)/clases lo maneja AuthContext via onAuthStateChange
     } catch (error: any) {
@@ -154,8 +163,65 @@ export default function RegistroScreen() {
             </View>
           ) : null}
 
-          {/* ── Datos personales ─────────────────────────────────────── */}
+          {/* ── Datos personales ────────────────────────────── */}
           <Text style={styles.sectionLabel}>DATOS PERSONALES</Text>
+
+          {/* Nombre y Apellido en fila */}
+          <View style={styles.row}>
+            {/* Nombre */}
+            <View style={[styles.halfField, styles.fieldGroup]}>
+              <Text style={styles.label}>Nombre</Text>
+              <View style={wrapperStyle('nombre', !!errors.nombre)}>
+                <Ionicons
+                  name="person-outline"
+                  size={17}
+                  color={focused === 'nombre' ? Colors.accent : errors.nombre ? Colors.danger : Colors.textMuted}
+                  style={styles.icon}
+                />
+                <TextInput
+                  style={styles.input}
+                  value={form.nombre}
+                  onChangeText={v => setField('nombre', v)}
+                  placeholder="Ana"
+                  placeholderTextColor={Colors.textMuted}
+                  autoCapitalize="words"
+                  onFocus={() => setFocused('nombre')}
+                  onBlur={() => setFocused(null)}
+                  accessibilityLabel="Nombre"
+                />
+              </View>
+              {errors.nombre ? (
+                <Text style={styles.fieldError}>{errors.nombre}</Text>
+              ) : null}
+            </View>
+
+            {/* Apellido */}
+            <View style={[styles.halfField, styles.fieldGroup]}>
+              <Text style={styles.label}>Apellido</Text>
+              <View style={wrapperStyle('apellido', !!errors.apellido)}>
+                <Ionicons
+                  name="person-outline"
+                  size={17}
+                  color={focused === 'apellido' ? Colors.accent : errors.apellido ? Colors.danger : Colors.textMuted}
+                  style={styles.icon}
+                />
+                <TextInput
+                  style={styles.input}
+                  value={form.apellido}
+                  onChangeText={v => setField('apellido', v)}
+                  placeholder="Gómez"
+                  placeholderTextColor={Colors.textMuted}
+                  autoCapitalize="words"
+                  onFocus={() => setFocused('apellido')}
+                  onBlur={() => setFocused(null)}
+                  accessibilityLabel="Apellido"
+                />
+              </View>
+              {errors.apellido ? (
+                <Text style={styles.fieldError}>{errors.apellido}</Text>
+              ) : null}
+            </View>
+          </View>
 
           {/* DNI */}
           <View style={styles.fieldGroup}>
@@ -418,11 +484,6 @@ const styles = StyleSheet.create({
   },
   inputWrapperFocused: {
     borderColor: Colors.accent,
-    shadowColor: Colors.accent,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 2,
   },
   inputWrapperError: {
     borderColor: Colors.danger,

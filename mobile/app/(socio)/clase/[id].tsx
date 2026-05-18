@@ -1,4 +1,3 @@
-import { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, ActivityIndicator,
   TouchableOpacity, Alert,
@@ -12,7 +11,9 @@ import { reservarClaseAbonado, calcularSena, verificarConflictoHorario } from '@
 import { useAuth } from '@context/AuthContext';
 import { Colors, Typography, Spacing, Radius, DisciplinaLabel, NivelLabel } from '@constants/theme';
 import { formatHora } from '@utils/fechas';
+import { sendPushFromClient } from '@hooks/usePushNotifications';
 import type { Clase, ListaEspera } from '@app-types/index';
+import { useCallback, useState } from 'react';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -133,10 +134,8 @@ export default function ClaseDetailScreen() {
   async function handleReservar(metodo: 'credito' | 'dinero' = 'credito') {
     if (!clase || !usuario) return;
 
-    const esAbonado = usuario.membresia === 'abonado';
-
-    // ── Flujo abonado (créditos) ─────────────────────────────────────────
-    if (esAbonado && metodo === 'credito') {
+    // ── Flujo con créditos ─────────────────────────────────────────
+    if (metodo === 'credito') {
       if (usuario.creditos < 1) {
         Alert.alert(
           'Sin créditos',
@@ -180,6 +179,18 @@ export default function ClaseDetailScreen() {
 
         const { creditosRestantes } = await reservarClaseAbonado(usuario.id, clase.id);
         await refreshUsuario();
+
+        // Evento B: Push de reserva confirmada (best-effort, no bloquea navegación)
+        const fechaLabel = new Date(clase.fecha + 'T00:00:00').toLocaleDateString('es-AR', {
+          weekday: 'long', day: 'numeric', month: 'long',
+        });
+        sendPushFromClient({
+          userId: usuario.id,
+          title: '✅ Reserva confirmada',
+          body: `Reservaste la clase de ${DisciplinaLabel[clase.disciplina] ?? clase.disciplina} del ${fechaLabel} a las ${clase.hora_inicio?.slice(0, 5)}.`,
+          data: { tipo: 'reserva_confirmada', claseId: clase.id },
+        });
+
         router.replace({
           pathname: '/(socio)/reserva-confirmada' as any,
           params: {
@@ -217,11 +228,13 @@ export default function ClaseDetailScreen() {
     // ── Flujo eventual (seña + pago mock) ────────────────────────────────
     setReservando(true);
     try {
+      console.log('[handleReservar] Flujo dinero iniciado');
       // Verificar conflicto de horario antes de ir al pago
       const hayConflicto = await verificarConflictoHorario(
         usuario.id, clase.fecha, clase.hora_inicio,
       );
       if (hayConflicto) {
+        console.log('[handleReservar] Conflicto de horario detectado');
         Alert.alert(
           'Horario ocupado',
           'Ya tenés una clase agendada en ese día y horario.',
@@ -231,12 +244,16 @@ export default function ClaseDetailScreen() {
       }
 
       // Validar si ya existe una reserva cancelada para evitar el error de BD en la pasarela
-      const { data: reservaPrevia } = await supabase
+      const { data: reservaPrevia, error: errorBD } = await supabase
         .from('reservas')
         .select('estado')
         .eq('socio_id', usuario.id)
         .eq('clase_id', clase.id)
         .maybeSingle();
+
+      if (errorBD) {
+         console.error('[handleReservar] Error verificando reserva previa:', errorBD);
+      }
 
       if (reservaPrevia && reservaPrevia.estado === 'cancelada') {
         Alert.alert(
@@ -249,6 +266,7 @@ export default function ClaseDetailScreen() {
 
       // Calcular seña (50% del valor por disciplina)
       const sena = calcularSena(clase.disciplina);
+      console.log('[handleReservar] Navegando a pago-mock con seña:', sena);
 
       // Navegar a pantalla de pago mock con todos los datos necesarios
       router.push({
@@ -261,10 +279,12 @@ export default function ClaseDetailScreen() {
           horaInicio: clase.hora_inicio,
           horaFin: clase.hora_fin,
           monto: String(sena),
-          descripcion: `Reserva de clase de ${DisciplinaLabel[clase.disciplina]} — Seña 50%`,
-          origen: esAbonado ? 'abonado' : 'eventual',
+          descripcion: `Reserva de clase de ${DisciplinaLabel[clase.disciplina]} — Seña 50%`
         },
       });
+    } catch (err: any) {
+      console.error('[handleReservar] Error no controlado en flujo dinero:', err);
+      Alert.alert('Error inesperado', 'Hubo un problema al preparar la reserva. Por favor, intentá nuevamente.');
     } finally {
       setReservando(false);
     }
@@ -302,21 +322,22 @@ export default function ClaseDetailScreen() {
     : 0;
 
   /**
-   * Determina el estado del CTA según las 4 reglas de negocio:
-   *  1. suspendida          → info (sin botón)
-   *  2. completa + en lista → info (posición)
-   *  3. completa + sin lista → botón lista de espera (amarillo)
-   *  4. disponible          → botón reservar (verde)
+   * HU-47: Prioridad estricta de evaluación de reglas:
+   *  1. suspendida               → 'Esta clase fue suspendida'
+   *  2. ya inscripto             → 'Ya estás inscripto en esta clase'
+   *  3. conflicto de horario     → 'Ya tenés una clase en ese horario'
+   *  4. completa + en lista      → 'Estás en posición X de la lista de espera'
+   *  5. completa + sin lista     → Botón 'Anotarse en lista de espera'
+   *  6. hay cupo (default)       → Botón 'Reservar clase'
    */
   type CtaMode = 'ya_inscripto' | 'reservar' | 'lista_espera' | 'en_lista' | 'suspendida' | 'conflicto' | 'ninguno';
   function getCtaMode(): CtaMode {
-    if (tieneReserva) return 'ya_inscripto';
-    if (suspendida) return 'suspendida';
-    if (tieneConflicto) return 'conflicto';
-    if (completa && yaEnLista) return 'en_lista';
-    if (completa && !yaEnLista) return 'lista_espera';
-    if (!completa && !tieneReserva) return 'reservar';
-    return 'ninguno';
+    if (suspendida) return 'suspendida';          // Regla 1: primero
+    if (tieneReserva) return 'ya_inscripto';      // Regla 2
+    if (tieneConflicto) return 'conflicto';       // Regla 3
+    if (completa && yaEnLista) return 'en_lista'; // Regla 4
+    if (completa && !yaEnLista) return 'lista_espera'; // Regla 5
+    return 'reservar';                            // Regla 6: default
   }
   const ctaMode = getCtaMode();
 
@@ -474,67 +495,50 @@ export default function ClaseDetailScreen() {
         )}
 
         {ctaMode === 'reservar' && (
-          /* Estado 1: clase disponible */
+          /* HU-26: Siempre ofrece ambas opciones, pero Crédito solo si tiene saldo */
           <View style={{ gap: Spacing.sm }}>
-            {usuario?.membresia === 'abonado' ? (
-              <>
-                <TouchableOpacity
-                  style={[
-                    styles.ctaButton,
-                    reservando && styles.ctaButtonLoading,
-                    usuario.creditos === 0 && { opacity: 0.5 }
-                  ]}
-                  onPress={() => handleReservar('credito')}
-                  activeOpacity={0.85}
-                  disabled={reservando || usuario.creditos === 0}
-                  accessibilityLabel="Reservar con crédito"
-                  accessibilityRole="button"
-                >
-                  {reservando ? (
-                    <ActivityIndicator color={Colors.textInverse} />
-                  ) : (
-                    <>
-                      <Ionicons name="checkmark-circle-outline" size={20} color={Colors.textInverse} />
-                      <Text style={styles.ctaText}>Reservar con crédito (tenés {usuario.creditos})</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-                {usuario.creditos === 0 && (
-                  <Text style={{ ...Typography.bodySmall, color: Colors.danger, textAlign: 'center' }}>
-                    No tenés créditos disponibles
-                  </Text>
-                )}
-                <TouchableOpacity
-                  style={[styles.ctaButton, { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border }]}
-                  onPress={() => handleReservar('dinero')}
-                  activeOpacity={0.85}
-                  disabled={reservando}
-                  accessibilityLabel="Pagar con dinero"
-                  accessibilityRole="button"
-                >
-                  <Ionicons name="cash-outline" size={20} color={Colors.textPrimary} />
-                  <Text style={[styles.ctaText, { color: Colors.textPrimary }]}>Pagar con dinero</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
+            {/* Botón 1: Reservar con crédito (Solo visible si saldo > 0) */}
+            {(usuario?.creditos ?? 0) > 0 && (
               <TouchableOpacity
-                style={[styles.ctaButton, reservando && styles.ctaButtonLoading]}
-                onPress={() => handleReservar('dinero')}
+                style={[
+                  styles.ctaButton,
+                  reservando && styles.ctaButtonLoading,
+                ]}
+                onPress={() => handleReservar('credito')}
                 activeOpacity={0.85}
                 disabled={reservando}
-                accessibilityLabel="Reservar clase"
+                accessibilityLabel="Reservar con crédito"
                 accessibilityRole="button"
               >
                 {reservando ? (
                   <ActivityIndicator color={Colors.textInverse} />
                 ) : (
                   <>
-                    <Ionicons name="checkmark-circle-outline" size={20} color={Colors.textInverse} />
-                    <Text style={styles.ctaText}>Reservar clase</Text>
+                    <Ionicons name="flash-outline" size={20} color={Colors.textInverse} />
+                    <Text style={styles.ctaText}>
+                      Reservar con crédito (tenés {usuario!.creditos})
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
             )}
+
+            {/* Botón 2: Pagar con dinero (seña 50%) */}
+            <TouchableOpacity
+              style={[
+                styles.ctaButton,
+                { backgroundColor: Colors.surface, borderWidth: 1.5, borderColor: Colors.border },
+                reservando && styles.ctaButtonLoading,
+              ]}
+              onPress={() => handleReservar('dinero')}
+              activeOpacity={0.85}
+              disabled={reservando}
+              accessibilityLabel="Pagar con dinero"
+              accessibilityRole="button"
+            >
+              <Ionicons name="cash-outline" size={20} color={Colors.textPrimary} />
+              <Text style={[styles.ctaText, { color: Colors.textPrimary }]}>Pagar con dinero (seña 50%)</Text>
+            </TouchableOpacity>
           </View>
         )}
 

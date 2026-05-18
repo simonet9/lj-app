@@ -3,6 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '@context/AuthContext';
+import { usePushNotifications } from '@hooks/usePushNotifications';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -10,6 +11,11 @@ function RootLayoutNav() {
   const { usuario, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+
+  // ── Push notifications: registro de token + listeners ─────────────────────
+  // Se usa una sola vez aquí para que esté activo durante toda la sesión.
+  // Se registra automáticamente cuando `usuario` cambia (login/logout).
+  usePushNotifications();
 
   useEffect(() => {
     if (loading) return;
