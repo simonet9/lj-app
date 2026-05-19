@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
   ActivityIndicator, TouchableOpacity, RefreshControl,
@@ -29,7 +29,7 @@ export default function AgendaScreen() {
   const fetchAgenda = useCallback(async () => {
     if (!usuario?.id) { setLoading(false); return; }
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('clases')
       .select('*')
       .eq('gestor_id', usuario.id)
@@ -37,10 +37,16 @@ export default function AgendaScreen() {
       .order('fecha', { ascending: true })
       .order('hora_inicio', { ascending: true });
 
+    // Filtro explícito por disciplina asignada al gestor
+    if (usuario.disciplina) {
+      query = query.eq('disciplina', usuario.disciplina);
+    }
+
+    const { data, error } = await query;
     if (!error && data) setClases(data as Clase[]);
     setLoading(false);
     setRefreshing(false);
-  }, [usuario?.id]);
+  }, [usuario?.id, usuario?.disciplina]);
 
   useEffect(() => { fetchAgenda(); }, [fetchAgenda]);
 
@@ -115,17 +121,14 @@ export default function AgendaScreen() {
     );
   }
 
-  // Inferimos la disciplina del gestor a partir de las clases cargadas
-  const disciplinaLabel = useMemo(() => {
-    if (clases.length === 0) return 'Gestor';
-    const disc = clases[0]?.disciplina;
-    return DisciplinaLabel[disc] ?? disc ?? 'Gestor';
-  }, [clases]);
+  // Disciplina del gestor — viene directamente del perfil, no de las clases cargadas
+  const disciplinaLabel = usuario?.disciplina
+    ? (DisciplinaLabel[usuario.disciplina] ?? usuario.disciplina)
+    : 'Gestor';
 
-  const disciplinaEmojiInferred = useMemo(() => {
-    if (clases.length === 0) return '🏅';
-    return DISCIPLINA_EMOJI[clases[0]?.disciplina] ?? '🏅';
-  }, [clases]);
+  const disciplinaEmojiInferred = usuario?.disciplina
+    ? (DISCIPLINA_EMOJI[usuario.disciplina] ?? '🏅')
+    : '🏅';
 
   return (
     <View style={styles.root}>

@@ -39,7 +39,7 @@ export interface UseCrearClaseResult {
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
-const CUPO_MIN = 4;
+const CUPO_MIN = 1;
 const CUPO_MAX = 20;
 
 const FORM_INICIAL: FormCrearClase = {
@@ -60,7 +60,7 @@ function mapearError(msg: string): string {
     return 'El horario debe estar entre las 17:00 y las 23:30.';
   }
   if (msg.includes('cupo_coherente') || msg.includes('cupo_maximo')) {
-    return 'El cupo máximo debe estar entre 4 y 20.';
+    return 'El cupo máximo debe estar entre 1 y 20.';
   }
   if (msg.includes('duplicate') || msg.includes('unique')) {
     return 'Ya existe una clase en ese horario.';
