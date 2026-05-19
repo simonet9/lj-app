@@ -18,6 +18,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import { useAuth } from '@context/AuthContext';
+import { requestPushPermissions, registerTokenInSupabase } from '@services/NotificationService';
 import { supabase } from '@services/supabase';
 import { Colors, Typography, Spacing, Radius } from '@constants/theme';
 
@@ -148,17 +149,27 @@ export default function TestNotificacionesScreen() {
   useEffect(() => {
     (async () => {
       try {
+        if (Platform.OS === 'web') {
+          setPushToken('⚠️ Web no soporta push nativo');
+          return;
+        }
+        
         const { data } = await Notifications.getExpoPushTokenAsync({
           projectId: 'fcc2e74d-f0b9-47ab-a5c1-1eccdc8df120',
         });
         setPushToken(data);
+        
+        // Forzamos el registro en BD para este dispositivo si el token se generó bien
+        if (usuario && data) {
+          await registerTokenInSupabase(usuario.id, data);
+        }
       } catch (e: any) {
         setPushToken(`⚠️ ${e.message}`);
       } finally {
         setTokenLoading(false);
       }
     })();
-  }, []);
+  }, [usuario]);
 
   // ── Obtener URL de Supabase ───────────────────────────────────────────────
   const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
@@ -197,12 +208,17 @@ export default function TestNotificacionesScreen() {
       const errors = json.errors ?? 0;
 
       if (sent === 0 && errors === 0) {
-        // Sin tokens activos en este dispositivo
+        // Sin tokens activos en la base de datos
+        const isWeb = Platform.OS === 'web';
+        const errorMsg = isWeb
+          ? 'Notificaciones web no soportadas.'
+          : 'Usuario sin tokens activos en BD. ¿Rechazaste los permisos o estás en Expo Go?';
+
         const result: TestResult = {
           caseId: tc.id,
           label: tc.label,
           status: 'error',
-          message: 'No hay tokens activos. ¿Aceptaste los permisos?',
+          message: errorMsg,
           timestamp,
           sent: 0,
           errors: 0,
