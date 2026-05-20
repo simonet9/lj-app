@@ -36,6 +36,10 @@ function handleNotificationNavigation(data: NotifData): void {
   const { tipo, claseId, reservaId } = data;
 
   switch (tipo) {
+    case 'bienvenida':
+      router.push('/(socio)/clases' as any);
+      break;
+
     case 'lista_espera':
       // Abrir detalle de la clase para que confirme su asistencia
       if (claseId) {
@@ -54,8 +58,13 @@ function handleNotificationNavigation(data: NotifData): void {
       break;
 
     case 'cancelacion':
-      if (reservaId) {
-        router.push('/(socio)/reservas' as any);
+      router.push('/(socio)/reservas' as any);
+      break;
+
+    case 'recordatorio':
+      // Abrir el detalle de la clase recordada
+      if (claseId) {
+        router.push(`/(socio)/clase/${claseId}` as any);
       }
       break;
 

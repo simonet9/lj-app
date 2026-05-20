@@ -68,16 +68,15 @@ export function sumarDias(iso: string, dias: number): string {
 }
 
 /**
- * Genera el array de horarios disponibles cada 30 minutos
+ * Genera el array de horarios disponibles en horas exactas
  * entre 17:00 y 23:00 inclusive.
  *
- * Resultado: ['17:00', '17:30', '18:00', ..., '23:00']
+ * Resultado: ['17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00']
  */
 export function generarHorariosDisponibles(): string[] {
   const slots: string[] = [];
   for (let h = 17; h <= 23; h++) {
     slots.push(`${String(h).padStart(2, '0')}:00`);
-    if (h < 23) slots.push(`${String(h).padStart(2, '0')}:30`);
   }
   return slots;
 }

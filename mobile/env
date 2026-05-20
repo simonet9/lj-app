@@ -1,0 +1,6 @@
+# Supabase — obtener desde https://supabase.com/dashboard/project/[tu-proyecto]/settings/api
+EXPO_PUBLIC_SUPABASE_URL=https://mttgsycigdysinxasopa.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10dGdzeWNpZ2R5c2lueGFzb3BhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwMzgwODQsImV4cCI6MjA5MjYxNDA4NH0.nSzGnm00afh6xEUanqrjm4cda60NwhVQWLx8kATpFf0
+
+# Entorno
+EXPO_PUBLIC_ENV=development

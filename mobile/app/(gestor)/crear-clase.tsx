@@ -243,13 +243,13 @@ export default function CrearClaseScreen() {
           <FieldLabel icon="people-outline" label="Cupo máximo" />
           <View style={styles.stepperRow}>
             <TouchableOpacity
-              style={[styles.stepperBtn, form.cupo <= 4 && styles.stepperBtnDisabled]}
+              style={[styles.stepperBtn, form.cupo <= 1 && styles.stepperBtnDisabled]}
               onPress={() => setCupo(form.cupo - 1)}
-              disabled={form.cupo <= 4}
+              disabled={form.cupo <= 1}
               activeOpacity={0.7}
               accessibilityLabel="Reducir cupo"
             >
-              <Ionicons name="remove" size={20} color={form.cupo <= 4 ? Colors.textMuted : Colors.textPrimary} />
+              <Ionicons name="remove" size={20} color={form.cupo <= 1 ? Colors.textMuted : Colors.textPrimary} />
             </TouchableOpacity>
 
             <View style={styles.stepperValue}>
@@ -267,7 +267,7 @@ export default function CrearClaseScreen() {
               <Ionicons name="add" size={20} color={form.cupo >= 20 ? Colors.textMuted : Colors.textPrimary} />
             </TouchableOpacity>
           </View>
-          <Text style={styles.hint}>Mínimo 4 · Máximo 20</Text>
+          <Text style={styles.hint}>Mínimo 1 · Máximo 20</Text>
         </View>
 
         {/* ── Resumen ──────────────────────────────────────────────────── */}

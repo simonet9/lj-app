@@ -40,6 +40,7 @@ export default function PagoPacks() {
 
   const [procesando, setProcesando] = useState(false);
   const [paso, setPaso] = useState<'detalle' | 'pago' | 'confirmado'>('detalle');
+  const [intentoFallido, setIntentoFallido] = useState(false);
 
   // Reiniciar estado si la pantalla estaba cacheada por Expo Router
   useFocusEffect(
@@ -62,7 +63,22 @@ export default function PagoPacks() {
 
   // ── Paso 1 → Paso 2: ir a pantalla de pago mock ─────────────────────────
   function handleIrAPago() {
+    setIntentoFallido(false);
     setPaso('pago');
+  }
+
+  // ── Paso 2 → simular pago fallido ────────────────────────────────────
+  async function handlePagoFallido() {
+    setProcesando(true);
+    setIntentoFallido(false);
+    await new Promise(r => setTimeout(r, 1200));
+    setProcesando(false);
+    setIntentoFallido(true);
+    Alert.alert(
+      'Pago no procesado',
+      'El pago no pudo ser procesado. Por favor, intentá de nuevo.',
+      [{ text: 'Volver a packs', onPress: () => router.replace('/(socio)/packs' as any) }],
+    );
   }
 
   // ── Paso 2 → confirmar pago y ejecutar compra atómica ─────────────────
@@ -165,23 +181,46 @@ export default function PagoPacks() {
             </View>
           </View>
 
-          <TouchableOpacity
-            style={[styles.ctaPrimary, { marginTop: Spacing.lg }, procesando && { opacity: 0.6 }]}
-            onPress={handleConfirmarPago}
-            disabled={procesando}
-            activeOpacity={0.85}
-            accessibilityLabel="Confirmar pago"
-            accessibilityRole="button"
-          >
-            {procesando ? (
-              <ActivityIndicator color={Colors.textInverse} />
-            ) : (
-              <>
-                <Ionicons name="lock-closed-outline" size={18} color={Colors.textInverse} />
-                <Text style={styles.ctaText}>Pagar ${precio.toLocaleString('es-AR')}</Text>
-              </>
-            )}
-          </TouchableOpacity>
+          {intentoFallido && (
+            <View style={styles.errorCard}>
+              <Ionicons name="close-circle" size={18} color={Colors.danger} />
+              <Text style={styles.errorText}>
+                El pago no pudo ser procesado. Por favor, intentá de nuevo.
+              </Text>
+            </View>
+          )}
+
+          <View style={{ gap: Spacing.sm, marginTop: Spacing.lg }}>
+            <TouchableOpacity
+              style={[styles.ctaPrimary, procesando && { opacity: 0.6 }]}
+              onPress={handleConfirmarPago}
+              disabled={procesando}
+              activeOpacity={0.85}
+              accessibilityLabel="Confirmar pago"
+              accessibilityRole="button"
+            >
+              {procesando ? (
+                <ActivityIndicator color={Colors.textInverse} />
+              ) : (
+                <>
+                  <Ionicons name="lock-closed-outline" size={18} color={Colors.textInverse} />
+                  <Text style={styles.ctaText}>Pagar ${precio.toLocaleString('es-AR')}</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.ctaFallido, procesando && { opacity: 0.6 }]}
+              onPress={handlePagoFallido}
+              disabled={procesando}
+              activeOpacity={0.85}
+              accessibilityLabel="Simular pago fallido"
+              accessibilityRole="button"
+            >
+              <Ionicons name="close-circle-outline" size={18} color={Colors.textPrimary} />
+              <Text style={[styles.ctaText, { color: Colors.textPrimary }]}>Simular Pago Fallido</Text>
+            </TouchableOpacity>
+          </View>
 
           <Text style={styles.mpAviso}>
             🔒 Pago simulado — ningún dato real es procesado en este MVP.
@@ -365,6 +404,27 @@ const styles = StyleSheet.create({
   successIcon: { marginBottom: Spacing.md },
   successTitle: { ...Typography.h1, color: Colors.textPrimary, textAlign: 'center' },
   successSubtitle: { ...Typography.body, color: Colors.textSecondary, textAlign: 'center', lineHeight: 22 },
+
+  // Error card
+  errorCard: {
+    flexDirection: 'row', gap: Spacing.sm, alignItems: 'flex-start',
+    backgroundColor: Colors.danger + '12',
+    borderRadius: Radius.md,
+    borderWidth: 1.5, borderColor: Colors.danger + '40',
+    padding: Spacing.md,
+    marginTop: Spacing.md,
+  },
+  errorText: { ...Typography.body, color: Colors.danger, flex: 1, lineHeight: 22 },
+
+  // CTA fallido (outline)
+  ctaFallido: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    borderWidth: 1, borderColor: Colors.border,
+    paddingVertical: 16,
+  },
 
   // Mercado Pago mock
   pagoContent: { padding: Spacing.lg, gap: Spacing.md },
