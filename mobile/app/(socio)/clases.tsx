@@ -39,7 +39,7 @@ function emptyStateMessage(
   if (nivel === 'todos') {
     return {
       title: `No hay clases de ${disciplinaLabel}`,
-      subtitle: 'No hay clases de esta disciplina para la fecha seleccionada.',
+      subtitle: 'Sin clases de esta disciplina',
     };
   }
   const nivelLabel = NivelLabel[nivel] ?? nivel;
